@@ -143,8 +143,12 @@ namespace Ideology_Faction_Icon
                     {
                         aFaction = settlement.Faction;
                         bool flag1 = aFaction.ideos != null;
-                        bool flag2 = aFaction.ideos.PrimaryIdeo != null;
-                        if (flag1 && flag2)
+                        bool flag2 = false;
+                        if (flag1)
+                        {
+                            flag2 = aFaction.ideos.PrimaryIdeo != null;
+                        }
+                        if (flag2)
                         {
                             SetSettlementColor(settlement, GetColor(ref aFaction));
                         }
