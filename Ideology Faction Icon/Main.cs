@@ -81,8 +81,13 @@ namespace Ideology_Faction_Icon
             if (IdeoFactIconSettings.changePlayerIcon)
             {
                 Faction pFaction = Find.FactionManager.FirstFactionOfDef(DefDatabase<FactionDef>.GetNamed("PlayerColony", true));
-                bool flag = pFaction.ideos.PrimaryIdeo != null;
-                if(flag)
+                bool flag1 = pFaction.ideos != null;
+                bool flag2 = false;
+                if (flag1)
+                {
+                    flag2 = pFaction.ideos.PrimaryIdeo != null;
+                }
+                if (flag2)
                 {
                     SetFactionIcon(ref pFaction, GetIdeoIcon(ref pFaction));
                 }
@@ -92,8 +97,14 @@ namespace Ideology_Faction_Icon
             {
                 //Faction pFaction = Find.FactionManager.FirstFactionOfDef(DefDatabase<FactionDef>.GetNamed("PlayerColony", true));
                 Faction pFaction = Find.FactionManager.OfPlayer;
-                bool flag = pFaction.ideos.PrimaryIdeo != null;
-                if (flag)
+                bool flag1 = pFaction.ideos != null;
+                bool flag2 = false;
+                if (flag1)
+                {
+                    flag2 = pFaction.ideos.PrimaryIdeo != null;
+                }
+
+                if (flag2)
                 {
                     Color pFactionColor = GetColor(ref pFaction);
                     foreach (RimWorld.Planet.Settlement settlement in Find.WorldObjects.SettlementBases)
