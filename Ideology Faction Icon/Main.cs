@@ -69,18 +69,13 @@ namespace Ideology_Faction_Icon
         {
             Harmony harmony = new Harmony(id: "rimworld.nuff.ideofacticon");
             harmony.Patch(AccessTools.Method(typeof(WorldInterface), nameof(WorldInterface.WorldInterfaceUpdate)), prefix: new HarmonyMethod(patchType, nameof(WorldInterfaceUpdatePrefix)));
-
-            /*
-            HarmonyInstance harmonyInstance = HarmonyInstance.Create("your_instance_name");
-            harmonyInstance.PatchAll(Assembly.GetExecutingAssembly());
-            */
         }
 
         public static void WorldInterfaceUpdatePrefix()
         {
             if (IdeoFactIconSettings.changePlayerIcon)
             {
-                Faction pFaction = Find.FactionManager.FirstFactionOfDef(DefDatabase<FactionDef>.GetNamed("PlayerColony", true));
+                Faction pFaction = Find.FactionManager.OfPlayer;
                 bool flag1 = pFaction.ideos != null;
                 bool flag2 = false;
                 if (flag1)
