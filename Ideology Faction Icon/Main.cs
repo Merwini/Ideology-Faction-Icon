@@ -8,6 +8,7 @@ using Verse;
 using UnityEngine;
 using HarmonyLib;
 using System.Reflection;
+using PeteTimesSix.CompactHediffs.Rimworld.UI;
 
 namespace Ideology_Faction_Icon
 {
@@ -25,6 +26,7 @@ namespace Ideology_Faction_Icon
             this.ifiSettings = GetSettings<IdeoFactIconSettings>();
         }
 
+        /*
        ///  <param name = "inRect" >
         public override void DoSettingsWindowContents(Rect inRect)
         {
@@ -37,6 +39,24 @@ namespace Ideology_Faction_Icon
             listingStandard.End();
             base.DoSettingsWindowContents(inRect);
         }
+        */
+
+        public override void DoSettingsWindowContents(Rect inRect)
+        {
+            base.DoSettingsWindowContents(inRect: inRect);
+            Text.Font = GameFont.Medium;
+            //Rect topRect = inRect.TopPart(0.05f);
+            if (Current.Game != null)
+            {
+                
+            }
+            else
+            {
+                Listing_Standard listingStandard = new Listing_Standard();
+                listingStandard.Begin(inRect);
+                listingStandard.Label("Settings must now be changed after the game is loaded.");
+            }
+        }
 
         public override string SettingsCategory()
         {
@@ -46,10 +66,21 @@ namespace Ideology_Faction_Icon
 
     public class IdeoFactIconSettings : ModSettings
     {
+        public enum CustomizeSettings
+        {
+            All,
+            Choose,
+            None,
+        }
+
         public static bool changePlayerIcon = true;
         public static bool changePlayerIconColor = true;
         public static bool changeNonplayerIcons = false;
         public static bool changeNonplayerColors = false;
+        public static bool reverseIcon = false;
+
+        public CustomizeSettings ideoAsFact = CustomizeSettings.None;
+        public CustomizeSettings factAsIdeo = CustomizeSettings.None;
 
         public override void ExposeData()
         {
