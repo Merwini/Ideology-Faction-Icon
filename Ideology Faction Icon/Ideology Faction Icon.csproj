@@ -7,7 +7,7 @@
     <ProjectGuid>{18ED8E99-D9C4-4F22-8EEE-681FF276F4DC}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Ideology_Faction_Icon</RootNamespace>
+    <RootNamespace>nuff.Ideology_Faction_Icon</RootNamespace>
     <AssemblyName>IdeoFactIcon</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -62,6 +62,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Listing_StandardListControl.cs" />
+    <Compile Include="GameComponent_FactionLists.cs" />
     <Compile Include="Listing_StandardExtension.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

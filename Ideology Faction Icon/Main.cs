@@ -10,7 +10,7 @@ using HarmonyLib;
 using System.Reflection;
 using PeteTimesSix.CompactHediffs.Rimworld.UI;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     // ROADMAP
     // TODO: CUSTOMIZABLE SETTINGS
@@ -41,22 +41,7 @@ namespace Ideology_Faction_Icon
         }
         */
 
-        public override void DoSettingsWindowContents(Rect inRect)
-        {
-            base.DoSettingsWindowContents(inRect: inRect);
-            Text.Font = GameFont.Medium;
-            //Rect topRect = inRect.TopPart(0.05f);
-            if (Current.Game != null)
-            {
-                
-            }
-            else
-            {
-                Listing_Standard listingStandard = new Listing_Standard();
-                listingStandard.Begin(inRect);
-                listingStandard.Label("Settings must now be changed after the game is loaded.");
-            }
-        }
+        
 
         public override string SettingsCategory()
         {
@@ -89,6 +74,50 @@ namespace Ideology_Faction_Icon
             Scribe_Values.Look(ref changeNonplayerIcons, "changeNonplayerIcons");
             Scribe_Values.Look(ref changeNonplayerColors, "changeNonplayerColors");
             base.ExposeData();
+        }
+
+        internal void DoSettingsWindowContents(Rect inRect)
+        {
+
+            Text.Font = GameFont.Medium;
+            //Rect topRect = inRect.TopPart(0.05f);
+
+            if (Current.Game != null)
+            {
+                GameComponent_FactionLists factionListHolder = Current.Game.GetComponent<GameComponent_FactionLists>();
+            }
+            Listing_Standard listingStandard = new Listing_Standard();
+            listingStandard.Begin(inRect);
+
+            listingStandard.Label("Which factions should use their ideoligion icon as their faction icon?");
+            listingStandard.EnumSelector(ref ideoAsFact, "", "", "");
+            if (ideoAsFact == CustomizeSettings.Choose)
+            {
+                if (Current.Game != null)
+                {
+                    //list control here
+                }
+                else
+                {
+                    listingStandard.Label("Specific factions can only be chosen while in-game. Please load your save first.");
+                }
+            }
+            listingStandard.Gap();
+
+            listingStandard.Label("Which factions should use their faction icon as their ideoligion icon? (reverse)");
+            listingStandard.EnumSelector(ref factAsIdeo, "", "", "");
+            if (factAsIdeo == CustomizeSettings.Choose)
+            {
+                if (Current.Game != null)
+                {
+                    //list control here
+                }
+                else
+                {
+                    listingStandard.Label("Specific factions can only be chosen while in-game. Please load your save first.");
+                }
+            }
+            listingStandard.Gap();
         }
     }
 
