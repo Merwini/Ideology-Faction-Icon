@@ -8,21 +8,39 @@ using RimWorld;
 using Verse;
 using UnityEngine;
 
-namespace nuff.Ideology_Faction_Icon
+namespace Ideology_Faction_Icon
 {
-    [StaticConstructorOnStartup]
     public class GameComponent_FactionLists : GameComponent
     {
-        List<Faction> knownFactions;
-        List<Faction> chosenForward;
-        List<Faction> chosenReverse;
-        List<Faction> unchosenForward;
-        List<Faction> unchosenReverse;
+        public List<Faction> knownFactions;
+        public List<Faction> chosenForward;
+        public List<Faction> chosenReverse;
+        public List<Faction> unchosenForward;
+        public List<Faction> unchosenReverse;
+
+        public GameComponent_FactionLists(Game game)
+        {
+
+        }
 
         public override void StartedNewGame()
         {
-            knownFactions = Find.FactionManager.AllFactionsListForReading;
+            knownFactions = new List<Faction>();
+            chosenForward = new List<Faction>();
+            chosenReverse = new List<Faction>();
+            unchosenForward = new List<Faction>();
+            unchosenReverse = new List<Faction>();
+
+            foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
+            {
+                knownFactions.Add(faction);
+                unchosenForward.Add(faction);
+                unchosenReverse.Add(faction);
+            }
+
             base.StartedNewGame();
+
+            this.LoadedGame();
         }
 
         public override void LoadedGame()
@@ -53,6 +71,16 @@ namespace nuff.Ideology_Faction_Icon
                 }
             }
             base.LoadedGame();
+        }
+
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Collections.Look(ref knownFactions, "knownFactions", LookMode.Reference);
+            Scribe_Collections.Look(ref chosenForward, "chosenForward", LookMode.Reference);
+            Scribe_Collections.Look(ref chosenReverse, "chosenReverse", LookMode.Reference);
+            Scribe_Collections.Look(ref unchosenForward, "unchosenForward", LookMode.Reference);
+            Scribe_Collections.Look(ref unchosenReverse, "unchosenReverse", LookMode.Reference);
         }
     }
 }
