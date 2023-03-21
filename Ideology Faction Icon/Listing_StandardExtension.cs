@@ -166,17 +166,18 @@ namespace Ideology_Faction_Icon
 		 */
 		#endregion
 		public static void ListControl(this Listing_Standard listingStandard, Rect inRect, ref List<Faction> leftList, ref List<Faction> rightList, ref string searchTerm, 
-										ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject)
+										ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject,
+										string columnLabel, string objectProperty, float rectPCT)
 		{
 			string tempString = searchTerm;
-			
-			
 
-			//Text.Font = GameFont.Medium;
-			Rect topRect = inRect.TopPart(pct: 0.05f);
+			Rect listControlRect = new Rect(0, 0, inRect.width * 0.9f, inRect.height * rectPCT);
+			listingStandard.BeginSection(inRect.height * 0.25f);
+			Rect topRect = listControlRect.TopPart(pct: 0.05f / rectPCT);
 			searchTerm = Widgets.TextField(rect: topRect.RightPart(pct: 0.95f).LeftPart(pct: 0.95f), text: searchTerm);
-			Rect labelRect = inRect.TopPart(pct: 0.1f).BottomHalf();
-			Rect bottomRect = inRect.BottomPart(pct: 0.9f);
+			float topPartF = 0.1f / rectPCT;
+			Rect labelRect = listControlRect.TopPart(pct: topPartF).BottomHalf();
+			Rect bottomRect = listControlRect.BottomPart(pct: 1 - topPartF);
 
 			#region leftSide
 
@@ -196,7 +197,7 @@ namespace Ideology_Faction_Icon
 					Widgets.DrawHighlightIfMouseover(rect: rowRect);
 					if (fact == leftSelectedObject)
 						Widgets.DrawHighlightSelected(rect: rowRect);
-					Widgets.Label(rect: rowRect, label: fact.Name ?? fact.def.label);
+					Widgets.Label(rect: rowRect, label: fact.Name);
 					if (Widgets.ButtonInvisible(butRect: rowRect))
 						leftSelectedObject = fact;
 
@@ -211,7 +212,7 @@ namespace Ideology_Faction_Icon
 
 			#region rightSide
 
-			Widgets.Label(rect: labelRect.RightHalf().RightPart(pct: 0.9f), label: "Enable Icon Changing for:");
+			Widgets.Label(rect: labelRect.RightHalf().RightPart(pct: 0.9f), label: columnLabel);
 			Rect rightRect = bottomRect.RightHalf().RightPart(pct: 0.9f).LeftPart(pct: 0.9f);
 			GUI.BeginGroup(position: rightRect, style: GUI.skin.box);
 			num = 6f;
@@ -225,7 +226,7 @@ namespace Ideology_Faction_Icon
 					Widgets.DrawHighlightIfMouseover(rect: rowRect);
 					if (fact == rightSelectedObject)
 						Widgets.DrawHighlightSelected(rect: rowRect);
-					Widgets.Label(rect: rowRect, label: fact.Name ?? fact.def.label);
+					Widgets.Label(rect: rowRect, label: fact.Name);
 					if (Widgets.ButtonInvisible(butRect: rowRect))
 						rightSelectedObject = fact;
 
@@ -244,7 +245,7 @@ namespace Ideology_Faction_Icon
 				leftSelectedObject != null)
 			{
 				rightList.Add(item: leftSelectedObject);
-				rightList = rightList.OrderBy(keySelector: fact => fact.Name ?? fact.def.label).ToList();
+				rightList = rightList.OrderBy(keySelector: fact => fact.Name).ToList();
 				rightSelectedObject = leftSelectedObject;
 				leftSelectedObject = null;
 			}
@@ -258,7 +259,7 @@ namespace Ideology_Faction_Icon
 			}
 
 			#endregion
-
+			listingStandard.EndSection(listingStandard);
 		}
 
 	}

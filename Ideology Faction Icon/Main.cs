@@ -52,7 +52,6 @@ namespace Ideology_Faction_Icon
             GameComponent_FactionLists factionListHolder = null;
 
             Text.Font = GameFont.Medium;
-            //Rect topRect = inRect.TopPart(0.05f);
 
             if (Current.Game != null)
             {
@@ -68,7 +67,8 @@ namespace Ideology_Faction_Icon
                 if (Current.Game != null)
                 {
                     listingStandard.ListControl(inRect, ref factionListHolder.unchosenForward, ref factionListHolder.chosenForward, 
-                        ref ifiSettings.searchTerm1, ref ifiSettings.leftScrollPosition1, ref ifiSettings.rightScrollPosition1, ref ifiSettings.leftSelectedObject1, ref ifiSettings.rightSelectedObject1);
+                        ref ifiSettings.searchTerm1, ref ifiSettings.leftScrollPosition1, ref ifiSettings.rightScrollPosition1, ref ifiSettings.leftSelectedObject1, ref ifiSettings.rightSelectedObject1,
+                        "Enable Icon Changing for:", "Name", 0.33f);
                 }
                 else
                 {
@@ -84,7 +84,8 @@ namespace Ideology_Faction_Icon
                 if (Current.Game != null)
                 {
                     listingStandard.ListControl(inRect, ref factionListHolder.unchosenReverse, ref factionListHolder.chosenReverse,
-                        ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2);
+                        ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2, 
+                        "Enable Icon Changing for:", "Name", 0.33f);
                 }
                 else
                 {
@@ -92,6 +93,7 @@ namespace Ideology_Faction_Icon
                 }
             }
             listingStandard.Gap();
+            listingStandard.End();
         }
     }
 
