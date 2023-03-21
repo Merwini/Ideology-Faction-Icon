@@ -165,14 +165,14 @@ namespace Ideology_Faction_Icon
 			SOFTWARE.
 		 */
 		#endregion
-		public static void ListControl(this Listing_Standard listingStandard, Rect inRect, ref List<Faction> leftList, ref List<Faction> rightList, ref string searchTerm, 
-										ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject,
-										string columnLabel, string objectProperty, float rectPCT)
+		public static void ListControl(this Listing_Standard listingStandard, Rect inRect, ref List<Faction> leftList, ref List<Faction> rightList, ref List<Faction> antiList,
+										ref string searchTerm, ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject,
+										string columnLabel, float rectPCT)
 		{
 			string tempString = searchTerm;
 
 			Rect listControlRect = new Rect(0, 0, inRect.width * 0.9f, inRect.height * rectPCT);
-			listingStandard.BeginSection(inRect.height * 0.25f);
+			listingStandard.BeginSection(inRect.height * rectPCT);
 			Rect topRect = listControlRect.TopPart(pct: 0.05f / rectPCT);
 			searchTerm = Widgets.TextField(rect: topRect.RightPart(pct: 0.95f).LeftPart(pct: 0.95f), text: searchTerm);
 			float topPartF = 0.1f / rectPCT;
@@ -245,6 +245,10 @@ namespace Ideology_Faction_Icon
 				leftSelectedObject != null)
 			{
 				rightList.Add(item: leftSelectedObject);
+				if (antiList.Contains(leftSelectedObject))
+                {
+					antiList.Remove(leftSelectedObject);
+                }
 				rightList = rightList.OrderBy(keySelector: fact => fact.Name).ToList();
 				rightSelectedObject = leftSelectedObject;
 				leftSelectedObject = null;

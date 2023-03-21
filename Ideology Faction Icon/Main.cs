@@ -66,9 +66,9 @@ namespace Ideology_Faction_Icon
             {
                 if (Current.Game != null)
                 {
-                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenForward, ref factionListHolder.chosenForward, 
+                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenForward, ref factionListHolder.chosenForward, ref factionListHolder.chosenReverse,
                         ref ifiSettings.searchTerm1, ref ifiSettings.leftScrollPosition1, ref ifiSettings.rightScrollPosition1, ref ifiSettings.leftSelectedObject1, ref ifiSettings.rightSelectedObject1,
-                        "Enable Icon Changing for:", "Name", 0.33f);
+                        "Enable Icon Changing for:", 0.3f);
                 }
                 else
                 {
@@ -83,9 +83,9 @@ namespace Ideology_Faction_Icon
             {
                 if (Current.Game != null)
                 {
-                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenReverse, ref factionListHolder.chosenReverse,
+                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenReverse, ref factionListHolder.chosenReverse, ref factionListHolder.chosenForward,
                         ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2, 
-                        "Enable Icon Changing for:", "Name", 0.33f);
+                        "Enable Icon Changing for:", 0.3f);
                 }
                 else
                 {
@@ -93,6 +93,9 @@ namespace Ideology_Faction_Icon
                 }
             }
             listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Change Player Faction Color", ref IdeoFactIconSettings.changePlayerIconColor, "Change the player's faction settlement icon color to match the primary ideoligion's color.");
+            listingStandard.Gap();
+            listingStandard.CheckboxLabeled("Change Nonplayer Faction Colors", ref IdeoFactIconSettings.changeNonplayerColors, "Change all other factions' settlement icons to match their primary ideoligion's color.");
             listingStandard.End();
         }
     }
