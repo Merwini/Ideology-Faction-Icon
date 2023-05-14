@@ -12,7 +12,7 @@ namespace Ideology_Faction_Icon
 {
     public class GameComponent_FactionLists : GameComponent
     {
-        public List<Faction> knownFactions;
+        public HashSet<Faction> knownFactions;
         public List<Faction> chosenForward;
         public List<Faction> chosenReverse;
         public List<Faction> unchosenForward;
@@ -25,7 +25,9 @@ namespace Ideology_Faction_Icon
 
         public override void StartedNewGame()
         {
-            knownFactions = new List<Faction>();
+            base.StartedNewGame();
+
+            knownFactions = new HashSet<Faction>();
             chosenForward = new List<Faction>();
             chosenReverse = new List<Faction>();
             unchosenForward = new List<Faction>();
@@ -38,20 +40,19 @@ namespace Ideology_Faction_Icon
                 unchosenReverse.Add(faction);
             }
 
-            base.StartedNewGame();
-
             this.LoadedGame();
         }
 
         public override void LoadedGame()
         {
+            base.LoadedGame();
+
             //check for new factions
             foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
             {
-                if (!knownFactions.Contains(faction))
+                if (knownFactions.Add(faction))
                 {
                     Log.Message("A faction has been added. Adding to unchosen lists.");
-                    knownFactions.Add(faction);
                     unchosenForward.Add(faction);
                     unchosenReverse.Add(faction);
                 }
@@ -70,7 +71,13 @@ namespace Ideology_Faction_Icon
                     unchosenReverse.Remove(faction);
                 }
             }
-            base.LoadedGame();
+
+            //update static lists
+            IFIListHolder.knownFactions = knownFactions;
+            IFIListHolder.chosenForward = chosenForward;
+            IFIListHolder.chosenReverse = chosenReverse;
+            IFIListHolder.unchosenForward = unchosenForward;
+            IFIListHolder.unchosenReverse = unchosenReverse;
         }
 
         public override void ExposeData()

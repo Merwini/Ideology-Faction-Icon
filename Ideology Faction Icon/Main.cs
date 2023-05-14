@@ -98,6 +98,29 @@ namespace Ideology_Faction_Icon
             listingStandard.CheckboxLabeled("Change Nonplayer Faction Colors", ref IdeoFactIconSettings.changeNonplayerColors, "Change all other factions' settlement icons to match their primary ideoligion's color.");
             listingStandard.End();
         }
+
+        public override void WriteSettings()
+        {
+            base.WriteSettings();
+
+            //pseudocode
+            //find the gameComponent
+            //update the lists in it
+
+            if (Current.Game != null)
+            {
+                GameComponent_FactionLists gc_fl = Current.Game.GetComponent(typeof(GameComponent_FactionLists)) as GameComponent_FactionLists;
+                if (gc_fl != null)
+                {
+                    IFIListHolder.knownFactions = gc_fl.knownFactions;
+                    IFIListHolder.chosenForward = gc_fl.chosenForward;
+                    IFIListHolder.chosenReverse = gc_fl.chosenReverse;
+                    IFIListHolder.unchosenForward = gc_fl.unchosenForward;
+                    IFIListHolder.unchosenReverse = gc_fl.unchosenReverse;
+                }
+            }
+        }
+
     }
 
     public class IdeoFactIconSettings : ModSettings
@@ -140,9 +163,12 @@ namespace Ideology_Faction_Icon
             Scribe_Values.Look(ref factAsIdeo, "factAsIdeo");
             base.ExposeData();
         }
-                
+
     }
 
+
+
+    /*
     [StaticConstructorOnStartup]
     public static class HarmonyPatches
     {
@@ -172,7 +198,6 @@ namespace Ideology_Faction_Icon
 
             if (IdeoFactIconSettings.changePlayerIconColor)
             {
-                //Faction pFaction = Find.FactionManager.FirstFactionOfDef(DefDatabase<FactionDef>.GetNamed("PlayerColony", true));
                 Faction pFaction = Find.FactionManager.OfPlayer;
                 bool flag1 = pFaction.ideos != null;
                 bool flag2 = false;
@@ -271,4 +296,5 @@ namespace Ideology_Faction_Icon
             settlement.Material.color = color;
         }
     }
+    */
 }
