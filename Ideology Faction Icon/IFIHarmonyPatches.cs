@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Verse;
+using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using HarmonyLib;
@@ -23,21 +24,29 @@ namespace Ideology_Faction_Icon
         [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
         public static class Settlement_ExpandingIcon_Patch
         {
-            public static bool Prefix(Settlement __instance, ref Texture2D __result)
+            public static void Postfix(Settlement __instance, ref Texture2D __result)
             {
-                // Your if-else statement goes here
-                // Make sure to set the value of __result accordingly
                 if (IFIListHolder.chosenForward.Contains(__instance.Faction))
                 {
                     __result = __instance.Faction.ideos.PrimaryIdeo.Icon;
-                    return false;
                 }
-
-                return true;
             }
         }
 
-
+        [HarmonyPatch(typeof(RimWorld.PawnColumnWorker_Faction), "GetIconFor")]
+        public static class PawnColumnWorker_Faction_GetIconFor_Patch
+        {
+            public static void Postfix(Pawn pawn, ref Texture2D __result)
+            {
+                if (pawn != null && (__result != null))
+                {
+                    if (IFIListHolder.chosenForward.Contains(pawn.Faction))
+                    {
+                        __result = pawn.Faction.ideos.PrimaryIdeo.Icon;
+                    }
+                }
+            }
+        }
 
         public static void HandleResult(Texture2D result)
         {
