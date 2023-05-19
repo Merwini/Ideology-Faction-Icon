@@ -8,6 +8,7 @@ using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using HarmonyLib;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Ideology_Faction_Icon
@@ -51,115 +52,79 @@ namespace Ideology_Faction_Icon
             }
         }
 
-        #region VanillaCode
-        /*
-          
-         *  GUI.DrawTexture(position, faction.def.FactionIcon);
-          
-         * 	IL_00b6: ldloc.0
-	     *  IL_00b7: ldfld class RimWorld.Faction RimWorld.FactionUIUtility/'<>c__DisplayClass14_0'::faction
-	     *  IL_00bc: ldfld class RimWorld.FactionDef RimWorld.Faction::def
-	     *  IL_00c1: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Texture2D RimWorld.FactionDef::get_FactionIcon()
-	     *  IL_00c6: call void [UnityEngine.IMGUIModule]UnityEngine.GUI::DrawTexture(valuetype [UnityEngine.CoreModule]UnityEngine.Rect, class [UnityEngine.CoreModule]UnityEngine.Texture)
-
-         */
-        #endregion
-
-        #region GoalCode
-        /*
-          
-         * if (IFIListHolder.chosenForward.Contains(faction)
-         * {
-         *      GUI.DrawTexture(position, faction.ideos.PrimaryIdeo.Icon);
-         * }
-         * else
-         * {
-         *      GUI.DrawTexture(position, faction.def.FactionIcon);
-         * }
-          
-         */
-        #endregion
-
         [HarmonyPatch(typeof(FactionUIUtility))]
         [HarmonyPatch("DrawFactionRow")]
         public static class FactionUIUtility_DrawFactionRow_Patch
         {
-            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGen)
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
-                //var codeDrawTexture = new CodeInstruction(OpCodes.Call, callDrawTexture);
+                MethodInfo forwardDrawHelper = typeof(HarmonyPatches).GetMethod("ForwardDrawHelper", BindingFlags.Public | BindingFlags.Static);
 
-                var chosenForwardGetter = AccessTools.Property(typeof(IFIListHolder), "chosenForward").GetGetMethod();
-                var primaryIdeoGetter = AccessTools.Property(typeof(Ideo), "PrimaryIdeo").GetGetMethod();
-                var iconGetter = AccessTools.Property(typeof(Ideo), "Icon").GetGetMethod();
-
-
-                bool foundDrawTexture = false;
+                bool foundEndIndex = false;
+                bool foundStartIndex = false;
                 int startIndex = -1;
                 int endIndex = -1;
 
                 var codes = new List<CodeInstruction>(instructions);
+                var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
+
                 //loop through code instructions
                 for (int i = 0; i < codes.Count; i++)
                 {
-                    //end the loop if the call has been found
-                    if (foundDrawTexture)
-                    {
+                    if (foundEndIndex && foundStartIndex)
                         break;
-                    }
-                    //if the faction is put on the stack
-                    if (codes[i].opcode == OpCodes.Ldloc_0)
+
+                    if (foundEndIndex)
                     {
-                        //start a subloop looking through the subsequent instructions
-                        for (int j = i + 1; j < codes.Count; j++)
+                        for (int j = endIndex; j > 0; j--)
                         {
-                            //if the DrawTexture call is found
-                            if (codes[j].opcode == OpCodes.Call)
+                            if (codes[j].opcode == OpCodes.Ldfld
+                                && codes[j].operand.ToString().Contains("FactionDef"))
                             {
-                                var methOperand = codes[j].operand as System.Reflection.MethodInfo;
-                                if (methOperand == callDrawTexture)
-                                {
-                                    foundDrawTexture = true;
-                                    startIndex = i;
-                                    endIndex = j;
-                                    break;
-                                }
-                            }
-                            //if the faction is put on the stack again without finding the DrawTexture call, the main loop starts back up where the subloop left off
-                            else if (codes[j].opcode == OpCodes.Ldloc_0)
-                            {
-                                i = j;
+                                startIndex = j;
+                                foundStartIndex = true;
                                 break;
                             }
                         }
+                    }
+                        
+                    if (!foundEndIndex 
+                        && codes[i].opcode == OpCodes.Call
+                        && codes[i].operand.ToString().Contains("DrawTexture"))
+                    {
+                        endIndex = i;
+                        foundEndIndex = true;
+                        continue;
                     }
                 }
 
                 //only modify the instructions if the above loop was able to set the startIndex and endIndex
                 if (startIndex > 1 && endIndex > 1)
                 {
-                    //TODO generate the new instructions
+                    //generate the new instructions
                     List<CodeInstruction> newCodes = new List<CodeInstruction>();
+                    //call my method
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, forwardDrawHelper));
 
-                    //make some labels
-                    Label ifLabel = ilGen.DefineLabel();
-                    Label elseLabel = ilGen.DefineLabel();
-
-                    // load faction onto the stack twice
-                    newCodes.Add(new CodeInstruction(OpCodes.Ldloc_0));
-                    newCodes.Add(new CodeInstruction(OpCodes.Ldloc_0));
-
-
-
-
-
-                    //replace the old instructions with the new ones
+                    //remove the old instruction
+                    codes.RemoveRange(startIndex, (endIndex-startIndex+1));
+                    //insert the new instructions
                     codes.InsertRange(startIndex, newCodes);
                 }
 
                 return codes.AsEnumerable();
             }
         }
-
+        public static void ForwardDrawHelper(Rect position, Faction faction)
+        {
+            if (IFIListHolder.chosenForward.Contains(faction))
+            {
+                GUI.DrawTexture(position, faction.ideos.PrimaryIdeo.Icon);
+            }
+            else
+            {
+                GUI.DrawTexture(position, faction.def.FactionIcon);
+            }
+        }
     }
 }
