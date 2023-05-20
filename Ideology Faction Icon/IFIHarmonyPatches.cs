@@ -22,36 +22,11 @@ namespace Ideology_Faction_Icon
             harmony.PatchAll();
         }
 
-        //tested: works
-        [HarmonyPatch(typeof(Settlement))]
-        [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
-        public static class Settlement_ExpandingIcon_Postfix
-        {
-            public static void Postfix(Settlement __instance, ref Texture2D __result)
-            {
-                if (IFIListHolder.chosenForward.Contains(__instance.Faction))
-                {
-                    __result = __instance.Faction.ideos.PrimaryIdeo.Icon;
-                }
-            }
-        }
+        //Verse.Widgets.CanDrawIconFor(Def)
 
-        //TODO untested because I don't actually know what this does in-game
-        [HarmonyPatch(typeof(PawnColumnWorker_Faction))]
-        [HarmonyPatch("GetIconFor")]
-        public static class PawnColumnWorker_Faction_GetIconFor_Postfix
-        {
-            public static void Postfix(Pawn pawn, ref Texture2D __result)
-            {
-                if (pawn != null && (__result != null))
-                {
-                    if (IFIListHolder.chosenForward.Contains(pawn.Faction))
-                    {
-                        __result = pawn.Faction.ideos.PrimaryIdeo.Icon;
-                    }
-                }
-            }
-        }
+        //Verse.Widgets.DefIcon(Rect, Def, ThingDef, float, ThingStyleDef, bool, Color?, Mateiral, int?)
+
+        //RimWorld.InteractionDef.GetSymbol(Faction, Ideo)
 
         //tested: works
         [HarmonyPatch(typeof(Faction))]
@@ -68,6 +43,14 @@ namespace Ideology_Faction_Icon
                 }
             }
         }
+
+        //RimWorld.CompUsable.Icon
+
+        //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect)
+
+        //RimWorld.ColonistBarColonistDrawer.DrawIcons(Rect, Pawn)
+
+        //RimWorld.Dialog_BeginRitual.CalculatePawnPortraitIcons(Pawn)
 
         //tested: works
         [HarmonyPatch(typeof(FactionUIUtility))]
@@ -105,8 +88,8 @@ namespace Ideology_Faction_Icon
                             }
                         }
                     }
-                        
-                    if (!foundEndIndex 
+
+                    if (!foundEndIndex
                         && codes[i].opcode == OpCodes.Call
                         && codes[i].operand.ToString().Contains("DrawTexture"))
                     {
@@ -125,7 +108,7 @@ namespace Ideology_Faction_Icon
                     newCodes.Add(new CodeInstruction(OpCodes.Call, forwardDrawHelper));
 
                     //remove the old instruction
-                    codes.RemoveRange(startIndex, (endIndex-startIndex+1));
+                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
                     //insert the new instructions
                     codes.InsertRange(startIndex, newCodes);
                 }
@@ -133,6 +116,70 @@ namespace Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
+
+        //RimWorld.FactionUIUtility.DrawFactionIconWithTooltip(Rect, Faction)
+
+        //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
+
+        //TODO untested because I don't actually know what this does in-game
+        [HarmonyPatch(typeof(PawnColumnWorker_Faction))]
+        [HarmonyPatch("GetIconFor")]
+        public static class PawnColumnWorker_Faction_GetIconFor_Postfix
+        {
+            public static void Postfix(Pawn pawn, ref Texture2D __result)
+            {
+                if (pawn != null && (__result != null))
+                {
+                    if (IFIListHolder.chosenForward.Contains(pawn.Faction))
+                    {
+                        __result = pawn.Faction.ideos.PrimaryIdeo.Icon;
+                    }
+                }
+            }
+        }
+
+        //RimWorld.Reward_Goodwill.<get_StackElements>b__3_0(Rect)
+
+        //RimWorld.Planet.EscapeShip.ExpandingIcon
+
+        //tested: works
+        [HarmonyPatch(typeof(Settlement))]
+        [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
+        public static class Settlement_ExpandingIcon_Postfix
+        {
+            public static void Postfix(Settlement __instance, ref Texture2D __result)
+            {
+                if (IFIListHolder.chosenForward.Contains(__instance.Faction))
+                {
+                    __result = __instance.Faction.ideos.PrimaryIdeo.Icon;
+                }
+            }
+        }
+
+        //RimWorld.Planet.WorldFactionsUIUtility.DoWindowContents(Rect, List<FactionDef>, bool)
+
+        //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
+
+        //RimWorld.RoyalTitlePermitWorker_CallAid
+
+        //RimWorld.RoyalTitlePermitWorker_CallLaborers
+
+        //RimWorld.RoyalTitlePermitWorker_CallShuttle
+
+        //RimWorld.RoyalTitlePermitWorker_DropResources
+
+        //RimWorld.RoyalTitlePermitWorker_OrbitalStrike
+
+        //RimWorld.Pawn_RoyaltyTracker.<GetGizmos>d__70.MoveNext()
+
+        //RimWorld.CharacterCardUtility.<>c__DisplayClass41_0.<DoTopStack>b__10(Rect)
+
+        //RimWorld.CharacterCardUtility.<>c__DisplayClass41_1.<DoTopStack>b__11(Rect)
+
+        //RimWorld.CharacterCardUtility.<>c__DisplayClass41_5.<DoTopStack>b__15(Rect)
+
+        //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
+
         public static void ForwardDrawHelper(Rect position, Faction faction)
         {
             if (IFIListHolder.chosenForward.Contains(faction))
