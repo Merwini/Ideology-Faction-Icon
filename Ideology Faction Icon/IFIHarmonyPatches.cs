@@ -22,9 +22,10 @@ namespace Ideology_Faction_Icon
             harmony.PatchAll();
         }
 
+        //tested: works
         [HarmonyPatch(typeof(Settlement))]
         [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
-        public static class Settlement_ExpandingIcon_Patch
+        public static class Settlement_ExpandingIcon_Postfix
         {
             public static void Postfix(Settlement __instance, ref Texture2D __result)
             {
@@ -35,10 +36,10 @@ namespace Ideology_Faction_Icon
             }
         }
 
-        //TODO untested
-        [HarmonyPatch(typeof(RimWorld.PawnColumnWorker_Faction))]
+        //TODO untested because I don't actually know what this does in-game
+        [HarmonyPatch(typeof(PawnColumnWorker_Faction))]
         [HarmonyPatch("GetIconFor")]
-        public static class PawnColumnWorker_Faction_GetIconFor_Patch
+        public static class PawnColumnWorker_Faction_GetIconFor_Postfix
         {
             public static void Postfix(Pawn pawn, ref Texture2D __result)
             {
@@ -52,6 +53,23 @@ namespace Ideology_Faction_Icon
             }
         }
 
+        //tested: works
+        [HarmonyPatch(typeof(Faction))]
+        [HarmonyPatch("CommFloatMenuOption")]
+        public static class Faction_CommFloatMenuOption_Postfix
+        {
+            public static void Postfix(Faction __instance, ref FloatMenuOption __result)
+            {
+                if (__result != null && IFIListHolder.chosenForward.Contains(__instance))
+                {
+                    Log.Warning("Debug 2");
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+                    itemIconField.SetValue(__result, __instance.ideos.PrimaryIdeo.Icon);
+                }
+            }
+        }
+
+        //tested: works
         [HarmonyPatch(typeof(FactionUIUtility))]
         [HarmonyPatch("DrawFactionRow")]
         public static class FactionUIUtility_DrawFactionRow_Patch
