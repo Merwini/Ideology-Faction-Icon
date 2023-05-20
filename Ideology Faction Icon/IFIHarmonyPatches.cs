@@ -116,6 +116,17 @@ namespace Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
+        public static void DrawFactionRowHelper(Rect position, Faction faction)
+        {
+            if (IFIListHolder.chosenForward.Contains(faction))
+            {
+                GUI.DrawTexture(position, faction.ideos.PrimaryIdeo.Icon);
+            }
+            else
+            {
+                GUI.DrawTexture(position, faction.def.FactionIcon);
+            }
+        }
 
         //RimWorld.FactionUIUtility.DrawFactionIconWithTooltip(Rect, Faction)
 
@@ -180,16 +191,6 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
 
-        public static void ForwardDrawHelper(Rect position, Faction faction)
-        {
-            if (IFIListHolder.chosenForward.Contains(faction))
-            {
-                GUI.DrawTexture(position, faction.ideos.PrimaryIdeo.Icon);
-            }
-            else
-            {
-                GUI.DrawTexture(position, faction.def.FactionIcon);
-            }
-        }
+        
     }
 }
