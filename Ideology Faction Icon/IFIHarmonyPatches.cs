@@ -151,7 +151,23 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Reward_Goodwill.<get_StackElements>b__3_0(Rect)
 
-        //RimWorld.Planet.EscapeShip.ExpandingIcon
+        //untested: not sure what this is
+        [HarmonyPatch(typeof(EscapeShip))]
+        [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
+        public static class EscapeShip_ExpandingIcon_Postfix
+        {
+            public static void Postfix(EscapeShip __instance, ref Texture2D __result)
+            {
+                if (__instance.HasMap && __instance.Faction != null)
+                {
+                    if (IFIListHolder.chosenForward.Contains(__instance.Faction))
+                    {
+                        __result = __instance.Faction.ideos.PrimaryIdeo.Icon;
+                    }
+                }
+            }
+        }
+
 
         //tested: works
         [HarmonyPatch(typeof(Settlement))]

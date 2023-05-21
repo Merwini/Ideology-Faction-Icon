@@ -1,3 +1,2 @@
 ﻿TODO: 
-Make lists update on WriteSettings()
 Keep Harmony patching everything that accesses the faction's icon
