@@ -26,7 +26,22 @@ namespace Ideology_Faction_Icon
 
         //Verse.Widgets.DefIcon(Rect, Def, ThingDef, float, ThingStyleDef, bool, Color?, Mateiral, int?)
 
-        //RimWorld.InteractionDef.GetSymbol(Faction, Ideo)
+        //untested: not sure what this is in-game
+        [HarmonyPatch(typeof(InteractionDef))]
+        [HarmonyPatch("GetSymbol")]
+        public static class InteractionDef_GetSymbol_Postfix
+        {
+            public static void Postfix(InteractionDef __instance, ref Texture2D __result, Faction __0, Ideo __1)
+            {
+                if (__0 != null && __1 != null)
+                {
+                    if (IFIListHolder.chosenForward.Contains(__0) && __result == __0.def.FactionIcon)
+                    {
+                        __result = __1.Icon;
+                    }
+                }
+            }
+        }
 
         //tested: works
         [HarmonyPatch(typeof(Faction))]
@@ -47,7 +62,24 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect)
 
-        //RimWorld.ColonistBarColonistDrawer.DrawIcons(Rect, Pawn)
+        //TODO
+        [HarmonyPatch(typeof(ColonistBarColonistDrawer))]
+        [HarmonyPatch("DrawIcons")]
+        public static class ColonistBarColonistDrawer_DrawIcons_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("DrawIconsHelper", BindingFlags.Public | BindingFlags.Static);
+                var codes = new List<CodeInstruction>(instructions);
+
+
+                return codes.AsEnumerable();
+            }
+        }
+        public static void DrawIconsHelper(Faction faction)
+        {
+
+        }
 
         //RimWorld.Dialog_BeginRitual.CalculatePawnPortraitIcons(Pawn)
 
@@ -58,7 +90,7 @@ namespace Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo forwardDrawHelper = typeof(HarmonyPatches).GetMethod("ForwardDrawHelper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("DrawFactionRowHelper", BindingFlags.Public | BindingFlags.Static);
 
                 bool foundEndIndex = false;
                 bool foundStartIndex = false;
@@ -104,7 +136,7 @@ namespace Ideology_Faction_Icon
                     //generate the new instructions
                     List<CodeInstruction> newCodes = new List<CodeInstruction>();
                     //call my method
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, forwardDrawHelper));
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
 
                     //remove the old instruction
                     codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
@@ -131,7 +163,7 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
 
-        //TODO untested because I don't actually know what this does in-game
+        //untested: not sure what this is in-game
         [HarmonyPatch(typeof(PawnColumnWorker_Faction))]
         [HarmonyPatch("GetIconFor")]
         public static class PawnColumnWorker_Faction_GetIconFor_Postfix
@@ -150,7 +182,7 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Reward_Goodwill.<get_StackElements>b__3_0(Rect)
 
-        //untested: not sure what this is
+        //untested: not sure what this is in-game
         [HarmonyPatch(typeof(EscapeShip))]
         [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
         public static class EscapeShip_ExpandingIcon_Postfix
