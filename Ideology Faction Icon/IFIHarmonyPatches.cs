@@ -37,7 +37,6 @@ namespace Ideology_Faction_Icon
             {
                 if (__result != null && IFIListHolder.chosenForward.Contains(__instance))
                 {
-                    Log.Warning("Debug 2");
                     FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
                     itemIconField.SetValue(__result, __instance.ideos.PrimaryIdeo.Icon);
                 }
@@ -167,7 +166,6 @@ namespace Ideology_Faction_Icon
                 }
             }
         }
-
 
         //tested: works
         [HarmonyPatch(typeof(Settlement))]
