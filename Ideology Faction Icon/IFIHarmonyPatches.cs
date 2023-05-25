@@ -61,6 +61,33 @@ namespace Ideology_Faction_Icon
         //RimWorld.CompUsable.Icon
 
         //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect)
+        [HarmonyPatch(typeof(Tradeable_RoyalFavor))]
+        [HarmonyPatch("DrawIcon")]
+        public static class Tradeable_RoyalFavor_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = new List<CodeInstruction>(instructions);
+                int startIndex = -1;
+                int endIndex = -1;
+
+
+                if (startIndex >= 0 && endIndex >= 0)
+                {
+                    //make new instructions
+                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
+                    //newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
+
+                    //remove old instructions
+                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
+
+                    //add new instructions
+                    codes.InsertRange(startIndex, newCodes);
+                }
+
+                return codes.AsEnumerable();
+            }
+        }
 
         //tested: works
         [HarmonyPatch(typeof(ColonistBarColonistDrawer))]
@@ -69,7 +96,7 @@ namespace Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("DrawIconsHelper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("ColonistBarColonistDrawer_DrawIcons_Helper", BindingFlags.Public | BindingFlags.Static);
                 var codes = new List<CodeInstruction>(instructions);
                 int startIndex = -1;
                 int endIndex = -1;
@@ -119,20 +146,23 @@ namespace Ideology_Faction_Icon
                     */
                 }
 
-                //make new instructions
-                List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
+                if (startIndex >= 0 && endIndex >= 0)
+                {
+                    //make new instructions
+                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
 
-                //remove old instructions
-                codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
+                    //remove old instructions
+                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
 
-                //add new instructions
-                codes.InsertRange(startIndex, newCodes);
+                    //add new instructions
+                    codes.InsertRange(startIndex, newCodes);
+                }
 
                 return codes.AsEnumerable();
             }
         }
-        public static Texture2D DrawIconsHelper(Faction faction)
+        public static Texture2D ColonistBarColonistDrawer_DrawIcons_Helper(Faction faction)
         {
             Texture2D iconTexture;
 
@@ -148,6 +178,7 @@ namespace Ideology_Faction_Icon
             return iconTexture;
         }
 
+        /*
         public static void DrawIconsHelper2(Faction faction, List<object> iconDrawCallList, ColonistBarColonistDrawer cbcd)
         {
             // Assuming you have an instance of ColonistBarColonistDrawer called 'drawer'
@@ -184,6 +215,7 @@ namespace Ideology_Faction_Icon
 
             iconDrawCallList.Add(iconDrawCall);
         }
+        */
 
         //RimWorld.Dialog_BeginRitual.CalculatePawnPortraitIcons(Pawn)
 
@@ -194,7 +226,7 @@ namespace Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("DrawFactionRowHelper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("FactionUIUtility_DrawFactionRow_Helper", BindingFlags.Public | BindingFlags.Static);
 
                 bool foundEndIndex = false;
                 bool foundStartIndex = false;
@@ -235,7 +267,7 @@ namespace Ideology_Faction_Icon
                 }
 
                 //only modify the instructions if the above loop was able to set the startIndex and endIndex
-                if (startIndex > 1 && endIndex > 1)
+                if (startIndex >= 0 && endIndex >= 0)
                 {
                     //generate the new instructions
                     List<CodeInstruction> newCodes = new List<CodeInstruction>();
@@ -251,7 +283,7 @@ namespace Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
-        public static void DrawFactionRowHelper(Rect position, Faction faction)
+        public static void FactionUIUtility_DrawFactionRow_Helper(Rect position, Faction faction)
         {
             if (IFIListHolder.chosenForward.Contains(faction))
             {
