@@ -60,23 +60,54 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.CompUsable.Icon
 
-        //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect)
+        //tested: works
         [HarmonyPatch(typeof(Tradeable_RoyalFavor))]
         [HarmonyPatch("DrawIcon")]
         public static class Tradeable_RoyalFavor_Patch
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("Tradeable_RoyalFavor_Helper", BindingFlags.Public | BindingFlags.Static);
                 var codes = new List<CodeInstruction>(instructions);
                 int startIndex = -1;
                 int endIndex = -1;
+                bool foundStartIndex = false;
+                bool foundEndIndex = false;
 
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (foundStartIndex && foundEndIndex)
+                        break;
+
+                    if (foundEndIndex)
+                    {
+                        for (int j = endIndex; j >= 0; j--)
+                        {
+                            if (codes[j].opcode == OpCodes.Ldfld
+                                && codes[j].operand.ToString().Contains("def"))
+                            {
+                                startIndex = j;
+                                foundStartIndex = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!foundEndIndex
+                        && codes[i].opcode == OpCodes.Call
+                        && codes[i].operand.ToString().Contains("DrawTextureRotated"))
+                    {
+                        endIndex = i;
+                        foundEndIndex = true;
+                        continue;
+                    }
+                }
 
                 if (startIndex >= 0 && endIndex >= 0)
                 {
                     //make new instructions
                     List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    //newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
 
                     //remove old instructions
                     codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
@@ -86,6 +117,17 @@ namespace Ideology_Faction_Icon
                 }
 
                 return codes.AsEnumerable();
+            }
+        }
+        public static void Tradeable_RoyalFavor_Helper(Rect iconRect, Faction faction)
+        {
+            if (IFIListHolder.chosenForward.Contains(faction))
+            {
+                Widgets.DrawTextureRotated(iconRect, faction.ideos.PrimaryIdeo.Icon, 0f);
+            }
+            else
+            {
+                Widgets.DrawTextureRotated(iconRect, faction.def.FactionIcon, 0f);
             }
         }
 
@@ -103,6 +145,7 @@ namespace Ideology_Faction_Icon
                 //int defIndex = -1;
                 bool foundStartIndex = false;
                 bool foundEndIndex = false;
+
                 //bool foundDefIndex = false;
 
                 for (int i = 0; i < codes.Count; i++)
