@@ -62,7 +62,7 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect)
 
-        //TODO
+        //tested: works
         [HarmonyPatch(typeof(ColonistBarColonistDrawer))]
         [HarmonyPatch("DrawIcons")]
         public static class ColonistBarColonistDrawer_DrawIcons_Patch
@@ -71,14 +71,118 @@ namespace Ideology_Faction_Icon
             {
                 MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("DrawIconsHelper", BindingFlags.Public | BindingFlags.Static);
                 var codes = new List<CodeInstruction>(instructions);
+                int startIndex = -1;
+                int endIndex = -1;
+                //int defIndex = -1;
+                bool foundStartIndex = false;
+                bool foundEndIndex = false;
+                //bool foundDefIndex = false;
 
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (foundStartIndex && foundEndIndex)
+                        break;
+
+                    if (foundEndIndex)
+                    {
+                        for (int j = endIndex; j >= 0; j--)
+                        {
+                            if (codes[j].opcode == OpCodes.Ldfld
+                                && codes[j].operand.ToString().Contains("def"))
+                            {
+                                startIndex = j;
+                                foundStartIndex = true;
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (!foundEndIndex 
+                        && codes[i].opcode == OpCodes.Callvirt
+                        && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        endIndex = i;
+                        foundEndIndex = true;
+                        continue;
+                    }
+
+                    /* found a simpler way to do this
+                    if (!foundDefIndex
+                        && codes[i].opcode == OpCodes.Callvirt
+                        && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        defIndex = i;
+                        foundDefIndex = true;
+                        continue;
+                    }
+                    */
+                }
+
+                //make new instructions
+                List<CodeInstruction> newCodes = new List<CodeInstruction>();
+                newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
+
+                //remove old instructions
+                codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
+
+                //add new instructions
+                codes.InsertRange(startIndex, newCodes);
 
                 return codes.AsEnumerable();
             }
         }
-        public static void DrawIconsHelper(Faction faction)
+        public static Texture2D DrawIconsHelper(Faction faction)
         {
+            Texture2D iconTexture;
 
+            if (IFIListHolder.chosenForward.Contains(faction))
+            {
+                iconTexture = faction.ideos.PrimaryIdeo.Icon;
+            }
+            else
+            {
+                iconTexture = faction.def.FactionIcon;
+            }
+
+            return iconTexture;
+        }
+
+        public static void DrawIconsHelper2(Faction faction, List<object> iconDrawCallList, ColonistBarColonistDrawer cbcd)
+        {
+            // Assuming you have an instance of ColonistBarColonistDrawer called 'drawer'
+            Type drawerType = typeof(ColonistBarColonistDrawer);
+            Type iconDrawCallType = drawerType.GetNestedType("IconDrawCall", BindingFlags.NonPublic);
+
+            // Create an instance of the IconDrawCall struct using Activator.CreateInstance
+            object iconDrawCall = Activator.CreateInstance(iconDrawCallType, new object[] { null, null, null });
+
+            // Get the fields of the IconDrawCall struct
+            FieldInfo textureField = iconDrawCallType.GetField("texture", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo tooltipField = iconDrawCallType.GetField("tooltip", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo colorField = iconDrawCallType.GetField("color", BindingFlags.Instance | BindingFlags.Public);
+
+            Texture2D texture;
+            string tooltip = null;
+            Color? color;
+
+            if (IFIListHolder.chosenForward.Contains(faction))
+            {
+                texture = faction.ideos.PrimaryIdeo.Icon;
+                color = faction.ideos.PrimaryIdeo.Color;
+            }
+            else
+            {
+                texture = faction.def.FactionIcon;
+                color = faction.color;
+            }
+
+            // Set the values of the fields
+            textureField.SetValue(iconDrawCall, texture);
+            tooltipField.SetValue(iconDrawCall, tooltip);
+            colorField.SetValue(iconDrawCall, color);
+
+            iconDrawCallList.Add(iconDrawCall);
         }
 
         //RimWorld.Dialog_BeginRitual.CalculatePawnPortraitIcons(Pawn)
