@@ -222,6 +222,7 @@ namespace Ideology_Faction_Icon
         }
 
         /*
+         //there ended up being a MUCH easier way to do this...
         public static void DrawIconsHelper2(Faction faction, List<object> iconDrawCallList, ColonistBarColonistDrawer cbcd)
         {
             // Assuming you have an instance of ColonistBarColonistDrawer called 'drawer'
@@ -397,8 +398,57 @@ namespace Ideology_Faction_Icon
         //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
 
         //RimWorld.RoyalTitlePermitWorker_CallAid
+        //untested: not sure what this is used for.
+        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallAid))]
+        [HarmonyPatch("GetRoyalAidOptions")]
+        public static class RoyalTitlePermitWorker_CallAid_GetRoyalAidOptions_Postfix
+        {
+            public static void Postfix(Faction faction, IEnumerable<FloatMenuOption> __result)
+            {
+                Log.Warning("debug a");
+                if (IFIListHolder.chosenForward.Contains(faction))
+                {
+                    Log.Warning("debug b");
+                    Type floatMenuOptionType = typeof(FloatMenuOption);
+                    FieldInfo itemIconField = floatMenuOptionType.GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        //RimWorld.RoyalTitlePermitWorker_CallLaborers
+                    foreach (FloatMenuOption fmo in __result)
+                    {
+                        Log.Warning("debug c");
+                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
+                        {
+                            Log.Warning("debug d");
+                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
+                        }
+                    }
+                }
+            }
+        }
+
+        //tested: works
+        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallLaborers))]
+        [HarmonyPatch("GetRoyalAidOptions")]
+        public static class RoyalTitlePermitWorker_CallLaborers_GetRoyalAidOptions_Postfix
+        {
+            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
+            {
+                if (IFIListHolder.chosenForward.Contains(faction))
+                {
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                    foreach (FloatMenuOption fmo in __result)
+                    {
+                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
+                        {
+                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
+                        }
+
+                        yield return fmo;
+                    }
+
+                }
+            }
+        }
 
         //RimWorld.RoyalTitlePermitWorker_CallShuttle
 
@@ -416,6 +466,6 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
 
-        
+
     }
 }
