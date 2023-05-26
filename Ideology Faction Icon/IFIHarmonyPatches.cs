@@ -25,6 +25,12 @@ namespace Ideology_Faction_Icon
         //Verse.Widgets.CanDrawIconFor(Def)
 
         //Verse.Widgets.DefIcon(Rect, Def, ThingDef, float, ThingStyleDef, bool, Color?, Mateiral, int?)
+        [HarmonyPatch(typeof(Widgets))]
+        [HarmonyPatch("DefIcon")]
+        public static class Widgets_DefIcon_Patch
+        {
+
+        }
 
         //untested: not sure what this is in-game
         [HarmonyPatch(typeof(InteractionDef))]
@@ -397,111 +403,18 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
 
-        //tested: works
-        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallAid))]
-        [HarmonyPatch("GetRoyalAidOptions")]
-        public static class RoyalTitlePermitWorker_CallAid_GetRoyalAidOptions_Postfix
+        [HarmonyPatch]
+        public static class RoyalTitlePermitWorkers_Postfix
         {
-            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
+            public static IEnumerable<MethodBase> TargetMethods()
             {
-                if (IFIListHolder.chosenForward.Contains(faction))
-                {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    foreach (FloatMenuOption fmo in __result)
-                    {
-                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
-                        {
-                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
-                        }
-
-                        yield return fmo;
-                    }
-
-                }
+                yield return AccessTools.Method(typeof(RoyalTitlePermitWorker_CallAid), "GetRoyalAidOptions");
+                yield return AccessTools.Method(typeof(RoyalTitlePermitWorker_CallLaborers), "GetRoyalAidOptions");
+                yield return AccessTools.Method(typeof(RoyalTitlePermitWorker_CallShuttle), "GetRoyalAidOptions");
+                yield return AccessTools.Method(typeof(RoyalTitlePermitWorker_DropResources), "GetRoyalAidOptions");
+                yield return AccessTools.Method(typeof(RoyalTitlePermitWorker_OrbitalStrike), "GetRoyalAidOptions");
             }
-        }
 
-        //tested: works
-        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallLaborers))]
-        [HarmonyPatch("GetRoyalAidOptions")]
-        public static class RoyalTitlePermitWorker_CallLaborers_GetRoyalAidOptions_Postfix
-        {
-            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
-            {
-                if (IFIListHolder.chosenForward.Contains(faction))
-                {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    foreach (FloatMenuOption fmo in __result)
-                    {
-                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
-                        {
-                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
-                        }
-
-                        yield return fmo;
-                    }
-
-                }
-            }
-        }
-
-        //tested: works
-        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallShuttle))]
-        [HarmonyPatch("GetRoyalAidOptions")]
-        public static class RoyalTitlePermitWorker_CallShuttle_GetRoyalAidOptions_Postfix
-        {
-            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
-            {
-                if (IFIListHolder.chosenForward.Contains(faction))
-                {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    foreach (FloatMenuOption fmo in __result)
-                    {
-                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
-                        {
-                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
-                        }
-
-                        yield return fmo;
-                    }
-
-                }
-            }
-        }
-
-        //tested: works
-        [HarmonyPatch(typeof(RoyalTitlePermitWorker_DropResources))]
-        [HarmonyPatch("GetRoyalAidOptions")]
-        public static class RoyalTitlePermitWorker_DropResources_GetRoyalAidOptions_Postfix
-        {
-            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
-            {
-                if (IFIListHolder.chosenForward.Contains(faction))
-                {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    foreach (FloatMenuOption fmo in __result)
-                    {
-                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
-                        {
-                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
-                        }
-
-                        yield return fmo;
-                    }
-
-                }
-            }
-        }
-
-        //tested: works
-        [HarmonyPatch(typeof(RoyalTitlePermitWorker_OrbitalStrike))]
-        [HarmonyPatch("GetRoyalAidOptions")]
-        public static class RoyalTitlePermitWorker_OrbitalStrike_GetRoyalAidOptions_Postfix
-        {
             public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
             {
                 if (IFIListHolder.chosenForward.Contains(faction))
@@ -531,7 +444,5 @@ namespace Ideology_Faction_Icon
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_5.<DoTopStack>b__15(Rect)
 
         //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
-
-
     }
 }
