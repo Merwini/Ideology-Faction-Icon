@@ -397,30 +397,27 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
 
-        //RimWorld.RoyalTitlePermitWorker_CallAid
         //untested: not sure what this is used for.
         [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallAid))]
         [HarmonyPatch("GetRoyalAidOptions")]
         public static class RoyalTitlePermitWorker_CallAid_GetRoyalAidOptions_Postfix
         {
-            public static void Postfix(Faction faction, IEnumerable<FloatMenuOption> __result)
+            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
             {
-                Log.Warning("debug a");
                 if (IFIListHolder.chosenForward.Contains(faction))
                 {
-                    Log.Warning("debug b");
-                    Type floatMenuOptionType = typeof(FloatMenuOption);
-                    FieldInfo itemIconField = floatMenuOptionType.GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
 
                     foreach (FloatMenuOption fmo in __result)
                     {
-                        Log.Warning("debug c");
                         if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
                         {
-                            Log.Warning("debug d");
                             itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
                         }
+
+                        yield return fmo;
                     }
+
                 }
             }
         }
