@@ -450,7 +450,30 @@ namespace Ideology_Faction_Icon
             }
         }
 
-        //RimWorld.RoyalTitlePermitWorker_CallShuttle
+        //tested: works
+        [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallShuttle))]
+        [HarmonyPatch("GetRoyalAidOptions")]
+        public static class RoyalTitlePermitWorker_CallShuttle_GetRoyalAidOptions_Postfix
+        {
+            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
+            {
+                if (IFIListHolder.chosenForward.Contains(faction))
+                {
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                    foreach (FloatMenuOption fmo in __result)
+                    {
+                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
+                        {
+                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
+                        }
+
+                        yield return fmo;
+                    }
+
+                }
+            }
+        }
 
         //RimWorld.RoyalTitlePermitWorker_DropResources
 
