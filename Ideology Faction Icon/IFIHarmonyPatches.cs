@@ -397,7 +397,7 @@ namespace Ideology_Faction_Icon
 
         //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
 
-        //untested: not sure what this is used for.
+        //tested: works
         [HarmonyPatch(typeof(RoyalTitlePermitWorker_CallAid))]
         [HarmonyPatch("GetRoyalAidOptions")]
         public static class RoyalTitlePermitWorker_CallAid_GetRoyalAidOptions_Postfix
@@ -472,9 +472,55 @@ namespace Ideology_Faction_Icon
             }
         }
 
-        //RimWorld.RoyalTitlePermitWorker_DropResources
+        //tested: works
+        [HarmonyPatch(typeof(RoyalTitlePermitWorker_DropResources))]
+        [HarmonyPatch("GetRoyalAidOptions")]
+        public static class RoyalTitlePermitWorker_DropResources_GetRoyalAidOptions_Postfix
+        {
+            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
+            {
+                if (IFIListHolder.chosenForward.Contains(faction))
+                {
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        //RimWorld.RoyalTitlePermitWorker_OrbitalStrike
+                    foreach (FloatMenuOption fmo in __result)
+                    {
+                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
+                        {
+                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
+                        }
+
+                        yield return fmo;
+                    }
+
+                }
+            }
+        }
+
+        //tested: works
+        [HarmonyPatch(typeof(RoyalTitlePermitWorker_OrbitalStrike))]
+        [HarmonyPatch("GetRoyalAidOptions")]
+        public static class RoyalTitlePermitWorker_OrbitalStrike_GetRoyalAidOptions_Postfix
+        {
+            public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
+            {
+                if (IFIListHolder.chosenForward.Contains(faction))
+                {
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                    foreach (FloatMenuOption fmo in __result)
+                    {
+                        if ((Texture2D)itemIconField.GetValue(fmo) == faction.def.FactionIcon)
+                        {
+                            itemIconField.SetValue(fmo, faction.ideos.PrimaryIdeo.Icon);
+                        }
+
+                        yield return fmo;
+                    }
+
+                }
+            }
+        }
 
         //RimWorld.Pawn_RoyaltyTracker.<GetGizmos>d__70.MoveNext()
 
