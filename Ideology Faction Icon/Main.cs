@@ -9,7 +9,7 @@ using UnityEngine;
 using HarmonyLib;
 using System.Reflection;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     // ROADMAP
     // TODO: CUSTOMIZABLE SETTINGS
@@ -40,7 +40,7 @@ namespace Ideology_Faction_Icon
         }
         */
 
-        
+
 
         public override string SettingsCategory()
         {
@@ -84,7 +84,7 @@ namespace Ideology_Faction_Icon
                 if (Current.Game != null)
                 {
                     listingStandard.ListControl(inRect, ref factionListHolder.unchosenReverse, ref factionListHolder.chosenReverse, ref factionListHolder.chosenForward,
-                        ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2, 
+                        ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2,
                         "Enable Icon Changing for:", 0.3f);
                 }
                 else

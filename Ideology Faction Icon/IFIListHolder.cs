@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Verse;
 using RimWorld;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     [StaticConstructorOnStartup]
     public static class IFIListHolder

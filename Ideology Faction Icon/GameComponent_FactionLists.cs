@@ -8,7 +8,7 @@ using RimWorld;
 using Verse;
 using UnityEngine;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     public class GameComponent_FactionLists : GameComponent
     {

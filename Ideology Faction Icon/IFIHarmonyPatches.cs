@@ -11,7 +11,7 @@ using HarmonyLib;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     [StaticConstructorOnStartup]
     public static class HarmonyPatches
@@ -174,7 +174,7 @@ namespace Ideology_Faction_Icon
                         continue;
                     }
 
-                    if (!foundEndIndex 
+                    if (!foundEndIndex
                         && codes[i].opcode == OpCodes.Callvirt
                         && codes[i].operand.ToString().Contains("get_FactionIcon"))
                     {
