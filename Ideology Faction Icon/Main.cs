@@ -74,7 +74,7 @@ namespace nuff.Ideology_Faction_Icon
 
                     float scrollContentHeight = comp.iconDictionary.Count * 50f + 10f; // Better spacing
                     Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, scrollContentHeight);
-                    Widgets.BeginScrollView(outRect, ref ifiSettings.leftScrollPosition1, viewRect);
+                    Widgets.BeginScrollView(outRect, ref ifiSettings.scrollPosition, viewRect);
 
                     Listing_Standard scrollList = new Listing_Standard();
                     scrollList.Begin(viewRect);
@@ -165,26 +165,10 @@ namespace nuff.Ideology_Faction_Icon
             Default
         }
 
-        //public static bool changePlayerIcon = true;
-        //public static bool changePlayerIconColor = true;
-        //public static bool changeNonplayerIcons = false;
-        //public static bool changeNonplayerColors = false;
-        //public static bool reverseIcon = false;
-
         public static CustomizeSettings ideoAsFact = CustomizeSettings.Just_Player;
         public CustomizeSettings factAsIdeo = CustomizeSettings.Just_Player;
 
-        public string searchTerm1 = "";
-        public Vector2 leftScrollPosition1 = new Vector2();
-        public Vector2 rightScrollPosition1 = new Vector2();
-        public Faction leftSelectedObject1 = null;
-        public Faction rightSelectedObject1 = null;
-
-        public string searchTerm2 = "";
-        public Vector2 leftScrollPosition2 = new Vector2();
-        public Vector2 rightScrollPosition2 = new Vector2();
-        public Faction leftSelectedObject2 = null;
-        public Faction rightSelectedObject2 = null;
+        public Vector2 scrollPosition = new Vector2();
 
         public override void ExposeData()
         {

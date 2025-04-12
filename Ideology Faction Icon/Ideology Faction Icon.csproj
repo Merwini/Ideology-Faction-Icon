@@ -66,7 +66,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IFIListHolder.cs" />
     <Compile Include="GameComponent_FactionLists.cs" />
     <Compile Include="IFIHarmonyPatches.cs" />
     <Compile Include="Listing_StandardExtension.cs" />

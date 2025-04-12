@@ -17,12 +17,9 @@ namespace nuff.Ideology_Faction_Icon
 
         List<Faction> iconFactListTmp;
         List<bool> iconBehaviorListTmp;
-        List<Faction> colorFactListTmp;
-        List<bool> colorBehaviorListTmp;
 
         public static Dictionary<Faction, Texture2D> iconCacheDict;
         public bool needRecache = true;
-        public bool gameStarted = false;
 
         public GameComponent_FactionLists(Game game)
         {
@@ -35,17 +32,7 @@ namespace nuff.Ideology_Faction_Icon
 
         public override void LoadedGame()
         {
-            gameStarted = true;
-            //check for newly added factions
-            foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
-            {
-                if (!iconDictionary.ContainsKey(faction))
-                {
-                    iconDictionary[faction] = false;
-                }
-            }
-
-            needRecache = true;
+            PopulateIconDictionary();
         }
 
         public override void GameComponentTick()
@@ -60,7 +47,6 @@ namespace nuff.Ideology_Faction_Icon
         public override void ExposeData()
         {
             Scribe_Collections.Look(ref iconDictionary, "iconDictionary", LookMode.Reference, LookMode.Value, ref iconFactListTmp, ref iconBehaviorListTmp);
-            //Scribe_Collections.Look(ref colorDictionary, "colorDictionary", LookMode.Reference, LookMode.Value);
         }
 
         public void PopulateIconDictionary()
