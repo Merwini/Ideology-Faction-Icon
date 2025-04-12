@@ -49,26 +49,58 @@ namespace nuff.Ideology_Faction_Icon
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            GameComponent_FactionLists factionListHolder = null;
+            GameComponent_FactionLists comp = null;
 
             Text.Font = GameFont.Medium;
 
             if (Current.Game != null)
             {
-                factionListHolder = Current.Game.GetComponent<GameComponent_FactionLists>();
+                comp = Current.Game.GetComponent<GameComponent_FactionLists>();
             }
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(inRect);
 
             listingStandard.Label("Which factions should use their ideoligion icon as their faction icon?");
-            listingStandard.EnumSelector(ref ifiSettings.ideoAsFact, "", "", "");
-            if (ifiSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.Choose)
+            listingStandard.Label("(Icons won't update while the game is paused.)");
+            listingStandard.EnumSelector(ref IdeoFactIconSettings.ideoAsFact, "", "", "");
+            if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.Choose)
             {
-                if (Current.Game != null)
+                if (Current.Game != null && comp != null)
                 {
-                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenForward, ref factionListHolder.chosenForward, ref factionListHolder.chosenReverse,
-                        ref ifiSettings.searchTerm1, ref ifiSettings.leftScrollPosition1, ref ifiSettings.rightScrollPosition1, ref ifiSettings.leftSelectedObject1, ref ifiSettings.rightSelectedObject1,
-                        "Enable Icon Changing for:", 0.3f);
+                    Text.Font = GameFont.Small;
+
+                    Rect outRect = listingStandard.GetRect(400f);
+                    Widgets.DrawBox(outRect);
+
+                    float scrollContentHeight = comp.iconDictionary.Count * 50f + 10f; // Better spacing
+                    Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, scrollContentHeight);
+                    Widgets.BeginScrollView(outRect, ref ifiSettings.leftScrollPosition1, viewRect);
+
+                    Listing_Standard scrollList = new Listing_Standard();
+                    scrollList.Begin(viewRect);
+
+                    foreach (var faction in comp.iconDictionary.Keys.ToList())
+                    {
+                        IdeoFactIconSettings.Behavior behavior = comp.iconDictionary[faction]
+                            ? IdeoFactIconSettings.Behavior.UseIdeoForFaction
+                            : IdeoFactIconSettings.Behavior.Default;
+
+                        scrollList.Label(faction.Name);
+                        if (faction.ideos?.PrimaryIdeo != null)
+                        {
+                            scrollList.EnumSelector(ref behavior, "", "");
+                        }
+                        else
+                        {
+                            scrollList.Label("has no ideoligion");
+                        }
+
+                        comp.iconDictionary[faction] = (behavior == IdeoFactIconSettings.Behavior.UseIdeoForFaction);
+                        scrollList.Gap();
+                    }
+
+                    scrollList.End();
+                    Widgets.EndScrollView();
                 }
                 else
                 {
@@ -77,48 +109,43 @@ namespace nuff.Ideology_Faction_Icon
             }
             listingStandard.Gap();
 
-            listingStandard.Label("Which factions should use their faction icon as their ideoligion icon? (reverse)");
-            listingStandard.EnumSelector(ref ifiSettings.factAsIdeo, "", "", "");
-            if (ifiSettings.factAsIdeo == IdeoFactIconSettings.CustomizeSettings.Choose)
-            {
-                if (Current.Game != null)
-                {
-                    listingStandard.ListControl(inRect, ref factionListHolder.unchosenReverse, ref factionListHolder.chosenReverse, ref factionListHolder.chosenForward,
-                        ref ifiSettings.searchTerm2, ref ifiSettings.leftScrollPosition2, ref ifiSettings.rightScrollPosition2, ref ifiSettings.leftSelectedObject2, ref ifiSettings.rightSelectedObject2,
-                        "Enable Icon Changing for:", 0.3f);
-                }
-                else
-                {
-                    listingStandard.Label("Specific factions can only be chosen while in-game. Please load your save first.");
-                }
-            }
-            listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Change Player Faction Color", ref IdeoFactIconSettings.changePlayerIconColor, "Change the player's faction settlement icon color to match the primary ideoligion's color.");
-            listingStandard.Gap();
-            listingStandard.CheckboxLabeled("Change Nonplayer Faction Colors", ref IdeoFactIconSettings.changeNonplayerColors, "Change all other factions' settlement icons to match their primary ideoligion's color.");
             listingStandard.End();
         }
 
         public override void WriteSettings()
         {
-            base.WriteSettings();
-
-            //pseudocode
-            //find the gameComponent
-            //update the lists in it
-
             if (Current.Game != null)
             {
-                GameComponent_FactionLists gc_fl = Current.Game.GetComponent(typeof(GameComponent_FactionLists)) as GameComponent_FactionLists;
-                if (gc_fl != null)
-                {
-                    IFIListHolder.knownFactions = gc_fl.knownFactions;
-                    IFIListHolder.chosenForward = gc_fl.chosenForward;
-                    IFIListHolder.chosenReverse = gc_fl.chosenReverse;
-                    IFIListHolder.unchosenForward = gc_fl.unchosenForward;
-                    IFIListHolder.unchosenReverse = gc_fl.unchosenReverse;
-                }
+                GameComponent_FactionLists comp = Current.Game.GetComponent<GameComponent_FactionLists>();
+                comp.PopulateIconDictionary();
+                //if (comp != null)
+                //{
+                //    if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.All)
+                //    {
+                //        foreach (var key in comp.iconDictionary.Keys.ToList())
+                //        {
+                //            comp.iconDictionary[key] = true;
+                //        }
+                //    }
+                //    else if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.Just_Player)
+                //    {
+                //        foreach (var key in comp.iconDictionary.Keys.ToList())
+                //        {
+                //            if (key.IsPlayer)
+                //            {
+                //                comp.iconDictionary[key] = true;
+                //            }
+                //            else
+                //            {
+                //                comp.iconDictionary[key] = false;
+                //            }
+                //        }
+                //    }
+                //    comp.needRecache = true;
+                //}
             }
+
+            base.WriteSettings();
         }
 
     }
@@ -127,19 +154,25 @@ namespace nuff.Ideology_Faction_Icon
     {
         public enum CustomizeSettings
         {
+            Just_Player,
             All,
             Choose,
-            None,
         }
 
-        public static bool changePlayerIcon = true;
-        public static bool changePlayerIconColor = true;
-        public static bool changeNonplayerIcons = false;
-        public static bool changeNonplayerColors = false;
-        public static bool reverseIcon = false;
+        public enum Behavior
+        {
+            UseIdeoForFaction,
+            Default
+        }
 
-        public CustomizeSettings ideoAsFact = CustomizeSettings.None;
-        public CustomizeSettings factAsIdeo = CustomizeSettings.None;
+        //public static bool changePlayerIcon = true;
+        //public static bool changePlayerIconColor = true;
+        //public static bool changeNonplayerIcons = false;
+        //public static bool changeNonplayerColors = false;
+        //public static bool reverseIcon = false;
+
+        public static CustomizeSettings ideoAsFact = CustomizeSettings.Just_Player;
+        public CustomizeSettings factAsIdeo = CustomizeSettings.Just_Player;
 
         public string searchTerm1 = "";
         public Vector2 leftScrollPosition1 = new Vector2();
@@ -155,146 +188,8 @@ namespace nuff.Ideology_Faction_Icon
 
         public override void ExposeData()
         {
-            Scribe_Values.Look(ref changePlayerIcon, "changePlayerIcon");
-            Scribe_Values.Look(ref changePlayerIconColor, "changePlayerIconColor");
-            Scribe_Values.Look(ref changeNonplayerIcons, "changeNonplayerIcons");
-            Scribe_Values.Look(ref changeNonplayerColors, "changeNonplayerColors");
-            Scribe_Values.Look(ref ideoAsFact, "ideoAsFact");
-            Scribe_Values.Look(ref factAsIdeo, "factAsIdeo");
-            base.ExposeData();
+            Scribe_Values.Look(ref ideoAsFact, "ideoBehavior");
         }
 
     }
-
-
-
-    /*
-    [StaticConstructorOnStartup]
-    public static class HarmonyPatches
-    {
-        private static readonly Type patchType = typeof(HarmonyPatches);
-        static HarmonyPatches()
-        {
-            Harmony harmony = new Harmony(id: "rimworld.nuff.ideofacticon");
-            harmony.Patch(AccessTools.Method(typeof(WorldInterface), nameof(WorldInterface.WorldInterfaceUpdate)), prefix: new HarmonyMethod(patchType, nameof(WorldInterfaceUpdatePrefix)));
-        }
-
-        public static void WorldInterfaceUpdatePrefix()
-        {
-            if (IdeoFactIconSettings.changePlayerIcon)
-            {
-                Faction pFaction = Find.FactionManager.OfPlayer;
-                bool flag1 = pFaction.ideos != null;
-                bool flag2 = false;
-                if (flag1)
-                {
-                    flag2 = pFaction.ideos.PrimaryIdeo != null;
-                }
-                if (flag2)
-                {
-                    SetFactionIcon(ref pFaction, GetIdeoIcon(ref pFaction));
-                }
-            }
-
-            if (IdeoFactIconSettings.changePlayerIconColor)
-            {
-                Faction pFaction = Find.FactionManager.OfPlayer;
-                bool flag1 = pFaction.ideos != null;
-                bool flag2 = false;
-                if (flag1)
-                {
-                    flag2 = pFaction.ideos.PrimaryIdeo != null;
-                }
-
-                if (flag2)
-                {
-                    Color pFactionColor = GetColor(ref pFaction);
-                    foreach (RimWorld.Planet.Settlement settlement in Find.WorldObjects.SettlementBases)
-                    {
-                        if (settlement.Faction.IsPlayer)
-                        {
-                            SetSettlementColor(settlement, pFactionColor);
-                        }
-                    }
-                }
-            }
-
-            if (IdeoFactIconSettings.changeNonplayerIcons)
-            {
-                List<Faction> npcFactions = new List<Faction>();
-                foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
-                {
-                    if (!faction.IsPlayer)
-                    {
-                        npcFactions.Add(faction);
-                    }
-                }
-
-                Faction aFaction;
-                foreach (Faction faction in npcFactions)
-                {
-                    aFaction = faction;
-                    bool flag1 = aFaction.ideos != null;
-                    bool flag2 = false;
-                    if (flag1)
-                    {
-                        flag2 = aFaction.ideos.PrimaryIdeo != null;
-                    }
-                    if (flag2)
-                    {
-                        SetFactionIcon(ref aFaction, GetIdeoIcon(ref aFaction));
-                    }
-                }
-            }
-
-            if (IdeoFactIconSettings.changeNonplayerColors)
-            {
-                Faction aFaction;
-                foreach (RimWorld.Planet.Settlement settlement in Find.WorldObjects.SettlementBases)
-                {
-                    if (!settlement.Faction.IsPlayer)
-                    {
-                        aFaction = settlement.Faction;
-                        bool flag1 = aFaction.ideos != null;
-                        bool flag2 = false;
-                        if (flag1)
-                        {
-                            flag2 = aFaction.ideos.PrimaryIdeo != null;
-                        }
-                        if (flag2)
-                        {
-                            SetSettlementColor(settlement, GetColor(ref aFaction));
-                        }
-                    }
-                }
-            }
-        }
-
-        private static Texture2D GetIdeoIcon(ref Faction faction)
-        {
-            Ideo mainIdeo = faction.ideos.PrimaryIdeo;
-            Texture2D ideoIcon = mainIdeo.iconDef.Icon;
-            return ideoIcon;
-        }
-
-        private static Color GetColor(ref Faction faction)
-        {
-            Color ideoColor = faction.ideos.PrimaryIdeo.colorDef.color;
-            //Color newColor = new Color(ideoColor.r, ideoColor.g, ideoColor.b);
-            return new Color(ideoColor.r, ideoColor.g, ideoColor.b);
-        }
-
-        private static void SetFactionIcon(ref Faction faction, Texture2D newIcon)
-        {
-            Type reflectionSucks = typeof(FactionDef);
-            FieldInfo reflectionBlows = reflectionSucks.GetField("factionIcon", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            reflectionBlows.SetValue(faction.def, newIcon);
-        }
-
-        private static void SetSettlementColor(RimWorld.Planet.Settlement settlement, Color color)
-        {
-            settlement.Material.color = color;
-        }
-    }
-    */
 }
