@@ -73,10 +73,12 @@ namespace nuff.Ideology_Faction_Icon
                     if (faction.IsPlayer)
                     {
                         iconDictionary[faction] = true;
+                        continue;
                     }
                     else
                     {
                         iconDictionary[faction] = false;
+                        continue;
                     }
                 }
 
@@ -86,6 +88,7 @@ namespace nuff.Ideology_Faction_Icon
                     if (!iconDictionary.ContainsKey(faction))
                     {
                         iconDictionary[faction] = false;
+                        continue;
                     }
                 }
             }
