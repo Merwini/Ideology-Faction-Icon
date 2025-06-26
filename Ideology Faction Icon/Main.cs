@@ -25,23 +25,6 @@ namespace nuff.Ideology_Faction_Icon
             this.ifiSettings = GetSettings<IdeoFactIconSettings>();
         }
 
-        /*
-       ///  <param name = "inRect" >
-        public override void DoSettingsWindowContents(Rect inRect)
-        {
-            Listing_Standard listingStandard = new Listing_Standard();
-            listingStandard.Begin(inRect);
-            listingStandard.CheckboxLabeled("Change Player Faction Icon", ref IdeoFactIconSettings.changePlayerIcon, "Changes the player's faction settlement icon on the world map to match their primary ideoligion's icon.");
-            listingStandard.CheckboxLabeled("Change Player Faction Color", ref IdeoFactIconSettings.changePlayerIconColor, "Change the player's faction settlement icon color to match the primary ideoligion's color.");
-            listingStandard.CheckboxLabeled("Change Nonplayer Faction Icons", ref IdeoFactIconSettings.changeNonplayerIcons, "Changes all other factions' settlement icons to match their primary ideoligion's icon.");
-            listingStandard.CheckboxLabeled("Change Nonplayer Faction Colors", ref IdeoFactIconSettings.changeNonplayerColors, "Change all other factions' settlement icons to match their primary ideoligion's color.");
-            listingStandard.End();
-            base.DoSettingsWindowContents(inRect);
-        }
-        */
-
-
-
         public override string SettingsCategory()
         {
             return "Ideoligion Icon as Faction Icon";
@@ -72,7 +55,7 @@ namespace nuff.Ideology_Faction_Icon
                     Rect outRect = listingStandard.GetRect(400f);
                     Widgets.DrawBox(outRect);
 
-                    float scrollContentHeight = comp.iconDictionary.Count * 50f + 10f; // Better spacing
+                    float scrollContentHeight = comp.iconDictionary.Count * 60f + 10f; // Better spacing
                     Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, scrollContentHeight);
                     Widgets.BeginScrollView(outRect, ref ifiSettings.scrollPosition, viewRect);
 
@@ -118,31 +101,6 @@ namespace nuff.Ideology_Faction_Icon
             {
                 GameComponent_FactionLists comp = Current.Game.GetComponent<GameComponent_FactionLists>();
                 comp.PopulateIconDictionary();
-                //if (comp != null)
-                //{
-                //    if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.All)
-                //    {
-                //        foreach (var key in comp.iconDictionary.Keys.ToList())
-                //        {
-                //            comp.iconDictionary[key] = true;
-                //        }
-                //    }
-                //    else if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.Just_Player)
-                //    {
-                //        foreach (var key in comp.iconDictionary.Keys.ToList())
-                //        {
-                //            if (key.IsPlayer)
-                //            {
-                //                comp.iconDictionary[key] = true;
-                //            }
-                //            else
-                //            {
-                //                comp.iconDictionary[key] = false;
-                //            }
-                //        }
-                //    }
-                //    comp.needRecache = true;
-                //}
             }
 
             base.WriteSettings();
