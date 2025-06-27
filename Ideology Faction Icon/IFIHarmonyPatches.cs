@@ -55,6 +55,12 @@ namespace nuff.Ideology_Faction_Icon
             GUI.DrawTexture(position, GameComponent_FactionLists.iconCacheDict[faction]);
         }
 
+        public static Texture2D Get_FactionIcon_Helper(Faction faction)
+        {
+            return GameComponent_FactionLists.iconCacheDict[faction];
+        }
+
+
         //Verse.Widgets.CanDrawIconFor(Def)
         //Doesn't need a patch
 
@@ -181,7 +187,7 @@ namespace nuff.Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("ColonistBarColonistDrawer_DrawIcons_Helper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
                 var codes = new List<CodeInstruction>(instructions);
                 int startIndex = -1;
                 int endIndex = -1;
@@ -225,7 +231,7 @@ namespace nuff.Ideology_Faction_Icon
                 {
                     //make new instructions
                     List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, getHelper));
 
                     //remove old instructions
                     codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
@@ -236,10 +242,6 @@ namespace nuff.Ideology_Faction_Icon
 
                 return codes.AsEnumerable();
             }
-        }
-        public static Texture2D ColonistBarColonistDrawer_DrawIcons_Helper(Faction faction)
-        {
-            return GameComponent_FactionLists.iconCacheDict[faction];
         }
 
         //RimWorld.Dialog_BeginRitual.CalculatePawnPortraitIcons(Pawn)
@@ -375,10 +377,6 @@ namespace nuff.Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
-        //public static void FactionUIUtility_DrawFactionIconWithTooltip_Helper(Rect r, Faction faction)
-        //{
-        //    GUI.DrawTexture(r, GameComponent_FactionLists.iconCacheDict[faction]);
-        //}
 
         //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
 
@@ -411,9 +409,6 @@ namespace nuff.Ideology_Faction_Icon
             static MethodBase TargetMethod()
             {
                 var outerType = typeof(Reward_Goodwill);
-
-                MethodInfo[] methods = outerType.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-                var innerType = outerType.GetNestedTypes(BindingFlags.NonPublic).FirstOrDefault(t => t.Name.Contains("get_StackElements"));
 
                 MethodInfo outerTargetMethod = outerType
                     .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
@@ -450,7 +445,7 @@ namespace nuff.Ideology_Faction_Icon
                     }
                 }
 
-                return codes;
+                return codes.AsEnumerable();
             }
         }
 
@@ -458,7 +453,7 @@ namespace nuff.Ideology_Faction_Icon
         //don't think patch is needed here
 
         //RimWorld.Planet.Settlement.ExpandingIcon
-        //todo test
+        //Tested: works
         [HarmonyPatch(typeof(Settlement))]
         [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
         public static class Settlement_ExpandingIcon_Postfix
@@ -567,6 +562,50 @@ namespace nuff.Ideology_Faction_Icon
         }
 
         //RimWorld.Pawn_RoyaltyTracker.<GetGizmos>d__70.MoveNext()
+        //Tested; Works
+        [HarmonyPatch(typeof(Pawn_RoyaltyTracker))]
+        public static class Pawn_RoyaltyTracker_GetGizmos_Patch
+        {
+            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
+
+            static MethodBase TargetMethod()
+            {
+                var outerType = typeof(Pawn_RoyaltyTracker);
+
+                var innerType = outerType
+                    .GetNestedTypes(BindingFlags.NonPublic)
+                    .FirstOrDefault(t => t.Name == "<GetGizmos>d__70");
+
+                MethodInfo targetMethod = innerType
+                    .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                    .FirstOrDefault(m => m.Name == "MoveNext");
+
+                return targetMethod;
+            }
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+
+                int iconIndex = -1;
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        iconIndex = i;
+                    }
+                }
+
+                if (iconIndex > 0)
+                {
+                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
+                    codes.RemoveAt(iconIndex);
+                }
+
+                return codes.AsEnumerable();
+            }
+        }
 
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_0.<DoTopStack>b__10(Rect)
 
