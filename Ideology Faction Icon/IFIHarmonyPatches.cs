@@ -115,7 +115,7 @@ namespace nuff.Ideology_Faction_Icon
         //Only used for Summon Diabolus, looks like, so doesn't need patch
 
         //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect iconRect)
-        //todo test
+        //Tested: Works
         [HarmonyPatch(typeof(Tradeable_RoyalFavor))]
         [HarmonyPatch("DrawIcon")]
         public static class Tradeable_RoyalFavor_Patch
@@ -379,6 +379,38 @@ namespace nuff.Ideology_Faction_Icon
         }
 
         //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
+        //Only shows if you have multiple factions with titles
+        //TODO test, need another faction that can have titles like DMS or Moyo Cartel to be updated to 1.6
+        [HarmonyPatch(typeof(PermitsCardUtility))]
+        [HarmonyPatch("DrawRecordsCard")]
+        public static class PermitsCardUtility_DrawRecordsCard_Patch
+        {
+            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+
+                int iconIndex = -1;
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        iconIndex = i;
+                    }
+
+                    //Apparently this operation needs to preserve labels. Causes System.ArgumentException: Label #3 is not marked in method `RimWorld.PermitsCardUtility.DrawRecordsCard_Patch0' if I do it like the others
+                    if (iconIndex > 0)
+                    {
+                        codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper).WithLabels(codes[iconIndex - 1].labels);
+                        codes[iconIndex] = new CodeInstruction(OpCodes.Nop).WithLabels(codes[iconIndex].labels);
+                    }
+                }
+
+                return codes.AsEnumerable();
+            }
+        }
 
         //RimWorld.PawnColumnWorker_Faction.GetIconFor(Pawn pawn)
         //untested: not sure what this is in-game
