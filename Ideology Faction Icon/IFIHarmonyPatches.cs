@@ -608,12 +608,117 @@ namespace nuff.Ideology_Faction_Icon
         }
 
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_0.<DoTopStack>b__10(Rect)
-
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_1.<DoTopStack>b__11(Rect)
-
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_5.<DoTopStack>b__15(Rect)
+        //The above were 41 when I started working on this months ago. Now are 42 as I work on this in 1.6
+        //Tested: Works
+        [HarmonyPatch]
+        public static class CharacterCardUtility_DoTopStack_Patch
+        {
+            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
+
+            static IEnumerable<MethodBase> TargetMethods()
+            {
+                var parentType = typeof(CharacterCardUtility);
+
+                foreach (var nestedType in parentType.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+                {
+                    // Filter out unnecessary methods. Seems like the # after DisplayClass can change, so can't rely on it. Decompiler said 41 when I started working on this months ago, is 42 now that I come back to it
+                    if (!nestedType.Name.StartsWith("<>c__DisplayClass"))
+                        continue;
+
+                    // See if that method in that nested Type has an instruction that is a Callvirt to get_FactionIcon
+                    foreach (var method in nestedType.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+                    {
+                        var instructions = HarmonyLib.PatchProcessor.GetCurrentInstructions(method, out _);
+
+                        if (instructions.Any(instr =>
+                            instr.opcode == OpCodes.Callvirt &&
+                            instr.operand is MethodInfo info &&
+                            info.Name == "get_FactionIcon"))
+                        {
+                            yield return method;
+                        }
+                    }
+                }
+            }
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+
+                int iconIndex = -1;
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        iconIndex = i;
+                    }
+                }
+
+                if (iconIndex > 0)
+                {
+                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
+                    codes.RemoveAt(iconIndex);
+                }
+
+                return codes.AsEnumerable();
+            }
+        }
 
         //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
+        [HarmonyPatch]
+        public static class Reward_BestowingCeremony_StackElements_Patch
+        {
+            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
+
+            static MethodBase TargetMethod()
+            {
+                var outerType = typeof(Reward_BestowingCeremony);
+
+                var nestedType = outerType
+                    .GetNestedTypes(BindingFlags.NonPublic)
+                    .FirstOrDefault(t => t.Name.StartsWith("<get_StackElements>"));
+
+                MethodInfo targetMethod = nestedType
+                    .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                    .FirstOrDefault(m => m.Name == "MoveNext");
+
+                return targetMethod;
+            }
+
+            /*
+             *  Looking for:
+             	    IL_00ab: ldloc.1
+			        IL_00ac: ldfld class RimWorld.Faction RimWorld.Reward_BestowingCeremony::awardingFaction
+			        IL_00b1: ldfld class RimWorld.FactionDef RimWorld.Faction::def
+			        IL_00b6: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Texture2D RimWorld.FactionDef::get_FactionIcon()
+            */
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+
+                int iconIndex = -1;
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    {
+                        iconIndex = i;
+                    }
+                }
+
+                if (iconIndex > 0)
+                {
+                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
+                    codes.RemoveAt(iconIndex);
+                }
+
+                return codes.AsEnumerable();
+            }
+        }
 
         //Settlement colors
         [HarmonyPatch(typeof(Settlement))]
