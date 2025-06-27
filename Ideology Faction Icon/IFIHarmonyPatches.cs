@@ -50,6 +50,11 @@ namespace nuff.Ideology_Faction_Icon
             }
         }
 
+        public static void GUI_DrawTexture_Helper(Rect position, Faction faction)
+        {
+            GUI.DrawTexture(position, GameComponent_FactionLists.iconCacheDict[faction]);
+        }
+
         //Verse.Widgets.CanDrawIconFor(Def)
         //Doesn't need a patch
 
@@ -85,7 +90,7 @@ namespace nuff.Ideology_Faction_Icon
         }
 
         //RimWorld.Faction.CommFloatMenuOption(Building_CommsConsole, Pawn)
-        //todo test
+        //Tested: works
         [HarmonyPatch(typeof(Faction))]
         [HarmonyPatch("CommFloatMenuOption")]
         public static class Faction_CommFloatMenuOption_Postfix
@@ -94,7 +99,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 if (__result != null)
                 {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("iconTex", BindingFlags.Instance | BindingFlags.NonPublic);
                     itemIconField.SetValue(__result, GameComponent_FactionLists.iconCacheDict[__instance]);
                 }
             }
@@ -169,7 +174,7 @@ namespace nuff.Ideology_Faction_Icon
         }
 
         //RimWorld.ColonistBarColonistDrawer.DrawIcons(Rect rect, Pawn colonist)
-        //todo test
+        //Tested: works
         [HarmonyPatch(typeof(ColonistBarColonistDrawer))]
         [HarmonyPatch("DrawIcons")]
         public static class ColonistBarColonistDrawer_DrawIcons_Patch
@@ -241,7 +246,7 @@ namespace nuff.Ideology_Faction_Icon
         //todo no longer exists?
 
         //RimWorld.FactionUIUtility.DrawFactionRow(Faction faction, float rowY, Rect fillRect)
-        //todo test
+        //Tested: works
         [HarmonyPatch(typeof(FactionUIUtility))]
         [HarmonyPatch("DrawFactionRow")]
         public static class FactionUIUtility_DrawFactionRow_Patch
@@ -304,10 +309,6 @@ namespace nuff.Ideology_Faction_Icon
 
                 return codes.AsEnumerable();
             }
-        }
-        public static void GUI_DrawTexture_Helper(Rect position, Faction faction)
-        {
-            GUI.DrawTexture(position, GameComponent_FactionLists.iconCacheDict[faction]);
         }
 
         //RimWorld.FactionUIUtility.DrawFactionIconWithTooltip(Rect, Faction)
@@ -438,7 +439,7 @@ namespace nuff.Ideology_Faction_Icon
 
                 for (int i = 0; i < codes.Count; i++)
                 {
-                    //find operation tagged IL_0021 above
+                    //Find operation tagged IL_0021 above
                     if (codes[i].Calls(drawTexture))
                     {
                         // Replace that call with a call to my helper
