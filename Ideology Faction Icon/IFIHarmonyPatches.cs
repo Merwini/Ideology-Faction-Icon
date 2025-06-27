@@ -248,7 +248,7 @@ namespace nuff.Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("FactionUIUtility_DrawFactionRow_Helper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Public | BindingFlags.Static);
 
                 bool foundEndIndex = false;
                 bool foundStartIndex = false;
@@ -256,7 +256,7 @@ namespace nuff.Ideology_Faction_Icon
                 int endIndex = -1;
 
                 var codes = new List<CodeInstruction>(instructions);
-                var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
+                //var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
 
                 //loop through code instructions
                 for (int i = 0; i < codes.Count; i++)
@@ -305,7 +305,7 @@ namespace nuff.Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
-        public static void FactionUIUtility_DrawFactionRow_Helper(Rect position, Faction faction)
+        public static void GUI_DrawTexture_Helper(Rect position, Faction faction)
         {
             GUI.DrawTexture(position, GameComponent_FactionLists.iconCacheDict[faction]);
         }
@@ -317,7 +317,7 @@ namespace nuff.Ideology_Faction_Icon
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("FactionUIUtility_DrawFactionIconWithTooltip_Helper", BindingFlags.Public | BindingFlags.Static);
+                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Public | BindingFlags.Static);
 
                 bool foundEndIndex = false;
                 bool foundStartIndex = false;
@@ -325,7 +325,7 @@ namespace nuff.Ideology_Faction_Icon
                 int endIndex = -1;
 
                 var codes = new List<CodeInstruction>(instructions);
-                var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
+                //var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
 
                 //loop through code instructions
                 for (int i = 0; i < codes.Count; i++)
@@ -374,10 +374,10 @@ namespace nuff.Ideology_Faction_Icon
                 return codes.AsEnumerable();
             }
         }
-        public static void FactionUIUtility_DrawFactionIconWithTooltip_Helper(Rect r, Faction faction)
-        {
-            GUI.DrawTexture(r, GameComponent_FactionLists.iconCacheDict[faction]);
-        }
+        //public static void FactionUIUtility_DrawFactionIconWithTooltip_Helper(Rect r, Faction faction)
+        //{
+        //    GUI.DrawTexture(r, GameComponent_FactionLists.iconCacheDict[faction]);
+        //}
 
         //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
 
@@ -399,6 +399,59 @@ namespace nuff.Ideology_Faction_Icon
         //RimWorld.PawnPortraitIconsDrawer.CalculatePawnPortraitIcons(Pawn pawn, bool required, bool showIdeoIcon)
 
         //RimWorld.Reward_Goodwill.<get_StackElements>b__3_0(Rect)
+        //This is what displays the faction icon next to goodwill quest rewards
+        //Tested: works
+        [HarmonyPatch]
+        public static class Reward_Goodwill_StackElements_Patch
+        {
+            static MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Static | BindingFlags.Public);
+            static MethodInfo drawTexture = AccessTools.Method(typeof(GUI), nameof(GUI.DrawTexture), new[] { typeof(Rect), typeof(Texture) });
+
+            static MethodBase TargetMethod()
+            {
+                var outerType = typeof(Reward_Goodwill);
+
+                MethodInfo[] methods = outerType.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                var innerType = outerType.GetNestedTypes(BindingFlags.NonPublic).FirstOrDefault(t => t.Name.Contains("get_StackElements"));
+
+                MethodInfo outerTargetMethod = outerType
+                    .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                    .FirstOrDefault(m => m.Name == "<get_StackElements>b__3_0");
+
+                return outerTargetMethod;
+            }
+
+            /* 
+             * Original IL:
+            		IL_0012: ldfld class RimWorld.Faction RimWorld.Reward_Goodwill::faction
+		            IL_0017: ldfld class RimWorld.FactionDef RimWorld.Faction::def
+		            IL_001c: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Texture2D RimWorld.FactionDef::get_FactionIcon()
+		            IL_0021: call void [UnityEngine.IMGUIModule]UnityEngine.GUI::DrawTexture(valuetype [UnityEngine.CoreModule]UnityEngine.Rect, class [UnityEngine.CoreModule]UnityEngine.Texture)
+
+                Need:
+                    ldfld class RimWorld.Faction RimWorld.Reward_Goodwill::faction
+                    call helper method instead
+            */
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    //find operation tagged IL_0021 above
+                    if (codes[i].Calls(drawTexture))
+                    {
+                        // Replace that call with a call to my helper
+                        codes[i] = new CodeInstruction(OpCodes.Call, drawHelper);
+
+                        // Remove the instructions that consume the Faction in favor of a FactionDef, then consume that in favor of a Texture2D. IL_0017 and IL_001c above
+                        codes.RemoveRange(i - 2, 2);
+                    }
+                }
+
+                return codes;
+            }
+        }
 
         //RimWorld.Planet.EscapeShip.ExpandingIcon
         //don't think patch is needed here
@@ -484,6 +537,7 @@ namespace nuff.Ideology_Faction_Icon
         //    return GameComponent_FactionLists.iconCacheDict[faction];
         //}
 
+        //World setup, pre-ideo generation
         //RimWorld.Planet.WorldFactionsUIUtility.DoRow(Rect, FactionDef, List<FactionDef>, int)
 
         [HarmonyPatch]
