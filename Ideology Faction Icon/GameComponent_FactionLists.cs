@@ -18,6 +18,9 @@ namespace nuff.Ideology_Faction_Icon
         List<Faction> iconFactListTmp;
         List<bool> iconBehaviorListTmp;
 
+        List<Faction> colorFactListTmp;
+        List<bool> colorBehaviorListTmp;
+
         public static Dictionary<Faction, Texture2D> iconCacheDict;
         public bool needRecache = true;
 
@@ -47,6 +50,7 @@ namespace nuff.Ideology_Faction_Icon
         public override void ExposeData()
         {
             Scribe_Collections.Look(ref iconDictionary, "iconDictionary", LookMode.Reference, LookMode.Value, ref iconFactListTmp, ref iconBehaviorListTmp);
+            Scribe_Collections.Look(ref colorDictionary, "colorDictionary", LookMode.Reference, LookMode.Value, ref colorFactListTmp, ref colorBehaviorListTmp);
         }
 
         public void PopulateIconDictionary()
@@ -55,7 +59,10 @@ namespace nuff.Ideology_Faction_Icon
             {
                 iconDictionary = new Dictionary<Faction, bool>();
             }
-            //colorDictionary = new Dictionary<Faction, bool>();
+            if (colorDictionary == null)
+            {
+                colorDictionary = new Dictionary<Faction, bool>();
+            }
 
             IdeoFactIconSettings.CustomizeSettings setting = IdeoFactIconSettings.ideoAsFact;
 
@@ -64,6 +71,7 @@ namespace nuff.Ideology_Faction_Icon
                 if (setting == IdeoFactIconSettings.CustomizeSettings.All)
                 {
                     iconDictionary[faction] = true;
+                    colorDictionary[faction] = false;
                     continue;
                 }
 
@@ -73,11 +81,13 @@ namespace nuff.Ideology_Faction_Icon
                     if (faction.IsPlayer)
                     {
                         iconDictionary[faction] = true;
+                        colorDictionary[faction] = false;
                         continue;
                     }
                     else
                     {
                         iconDictionary[faction] = false;
+                        colorDictionary[faction] = false;
                         continue;
                     }
                 }
@@ -88,6 +98,7 @@ namespace nuff.Ideology_Faction_Icon
                     if (!iconDictionary.ContainsKey(faction))
                     {
                         iconDictionary[faction] = false;
+                        colorDictionary[faction] = false;
                         continue;
                     }
                 }

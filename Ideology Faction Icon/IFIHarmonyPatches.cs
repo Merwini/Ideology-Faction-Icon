@@ -520,5 +520,28 @@ namespace nuff.Ideology_Faction_Icon
         //RimWorld.CharacterCardUtility.<>c__DisplayClass41_5.<DoTopStack>b__15(Rect)
 
         //RimWorld.Reward_BestowingCeremony.<get_StackElements>d__7.MoveNext()
+
+        //Settlement colors
+        [HarmonyPatch(typeof(Settlement))]
+        [HarmonyPatch("Material", MethodType.Getter)]
+        public static class Settlement_Material_Postfix
+        {
+            public static void Postfix(Material __result, Settlement __instance)
+            {
+                var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
+                if (comp == null || __instance?.Faction == null)
+                    return;
+
+                Faction faction = __instance.Faction;
+
+                bool useIdeoColor = comp.colorDictionary.TryGetValue(faction, out bool use) && use;
+
+                Color targetColor = useIdeoColor
+                    ? (faction.ideos?.PrimaryIdeo?.Color ?? faction.Color)
+                    : faction.Color;
+
+                __result.color = targetColor;
+            }
+        }
     }
 }

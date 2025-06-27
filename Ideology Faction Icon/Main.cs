@@ -11,11 +11,6 @@ using System.Reflection;
 
 namespace nuff.Ideology_Faction_Icon
 {
-    // ROADMAP
-    // TODO: CUSTOMIZABLE SETTINGS
-    // TODO: CHANGE TO ONLY OCCUR WHEN WORLD MAP IS OPENED INSTEAD OF EVERY TICK
-    // TODO: ACCOUNT FOR NULLS
-
     [StaticConstructorOnStartup]
     public class IdeoFactIcon : Mod
     {
@@ -55,7 +50,9 @@ namespace nuff.Ideology_Faction_Icon
                     Rect outRect = listingStandard.GetRect(400f);
                     Widgets.DrawBox(outRect);
 
-                    float scrollContentHeight = comp.iconDictionary.Count * 60f + 10f; // Better spacing
+                    float colorCount = comp.iconDictionary.Values.Where(v => v == true).Count();
+
+                    float scrollContentHeight = comp.iconDictionary.Count * 60f + colorCount * Text.LineHeight + 10f; // Better spacing
                     Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, scrollContentHeight);
                     Widgets.BeginScrollView(outRect, ref ifiSettings.scrollPosition, viewRect);
 
@@ -68,10 +65,18 @@ namespace nuff.Ideology_Faction_Icon
                             ? IdeoFactIconSettings.Behavior.UseIdeoForFaction
                             : IdeoFactIconSettings.Behavior.Default;
 
+                        IdeoFactIconSettings.ColorBehavior colorBehavior = comp.colorDictionary[faction]
+                            ? IdeoFactIconSettings.ColorBehavior.Ideoligion
+                            : IdeoFactIconSettings.ColorBehavior.Faction;
+
                         scrollList.Label(faction.Name);
                         if (faction.ideos?.PrimaryIdeo != null)
                         {
                             scrollList.EnumSelector(ref behavior, "", "");
+                            if (behavior == IdeoFactIconSettings.Behavior.UseIdeoForFaction)
+                            {
+                                scrollList.EnumSelector(ref colorBehavior, "", "");
+                            }
                         }
                         else
                         {
@@ -79,6 +84,7 @@ namespace nuff.Ideology_Faction_Icon
                         }
 
                         comp.iconDictionary[faction] = (behavior == IdeoFactIconSettings.Behavior.UseIdeoForFaction);
+                        comp.colorDictionary[faction] = (colorBehavior == IdeoFactIconSettings.ColorBehavior.Ideoligion);
                         scrollList.Gap();
                     }
 
@@ -123,9 +129,15 @@ namespace nuff.Ideology_Faction_Icon
             Default
         }
 
-        public static CustomizeSettings ideoAsFact = CustomizeSettings.Just_Player;
-        public CustomizeSettings factAsIdeo = CustomizeSettings.Just_Player;
+        public enum ColorBehavior
+        {
+            Faction,
+            Ideoligion
+        }
 
+        public static CustomizeSettings ideoAsFact = CustomizeSettings.Just_Player;
+
+        public float calculatedScrollHeight = 0f;
         public Vector2 scrollPosition = new Vector2();
 
         public override void ExposeData()
