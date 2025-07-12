@@ -8,86 +8,154 @@ using RimWorld;
 using Verse;
 using UnityEngine;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
     public class GameComponent_FactionLists : GameComponent
     {
-        public HashSet<Faction> knownFactions;
-        public List<Faction> chosenForward;
-        public List<Faction> chosenReverse;
-        public List<Faction> unchosenForward;
-        public List<Faction> unchosenReverse;
+        internal Dictionary<Faction, bool> iconDictionary;
+        internal Dictionary<Faction, bool> colorDictionary;
+
+        List<Faction> iconFactListTmp;
+        List<bool> iconBehaviorListTmp;
+
+        List<Faction> colorFactListTmp;
+        List<bool> colorBehaviorListTmp;
+
+        public static Dictionary<Faction, Texture2D> iconCacheDict;
+        public bool needRecache = true;
 
         public GameComponent_FactionLists(Game game)
         {
-
+            if (iconDictionary == null)
+            {
+                iconDictionary = new Dictionary<Faction, bool>();
+            }
+            if (colorDictionary == null)
+            {
+                colorDictionary = new Dictionary<Faction, bool>();
+            }
         }
 
         public override void StartedNewGame()
         {
-            base.StartedNewGame();
-
-            knownFactions = new HashSet<Faction>();
-            chosenForward = new List<Faction>();
-            chosenReverse = new List<Faction>();
-            unchosenForward = new List<Faction>();
-            unchosenReverse = new List<Faction>();
-
-            foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
-            {
-                knownFactions.Add(faction);
-                unchosenForward.Add(faction);
-                unchosenReverse.Add(faction);
-            }
-
-            this.LoadedGame();
+            needRecache = true;
         }
 
         public override void LoadedGame()
         {
-            base.LoadedGame();
+            PopulateIconDictionary();
+        }
 
-            //check for new factions
-            foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
+        public override void GameComponentTick()
+        {
+            if (needRecache)
             {
-                if (knownFactions.Add(faction))
-                {
-                    Log.Message("A faction has been added. Adding to unchosen lists.");
-                    unchosenForward.Add(faction);
-                    unchosenReverse.Add(faction);
-                }
+                RecacheIcons();
+                needRecache = false;
             }
-
-            //check for removed factions
-            foreach (Faction faction in knownFactions)
-            {
-                if (!Find.FactionManager.AllFactionsListForReading.Contains(faction))
-                {
-                    Log.Message("A faction has been removed. Removing from lists.");
-                    knownFactions.Remove(faction);
-                    chosenForward.Remove(faction);
-                    chosenReverse.Remove(faction);
-                    unchosenForward.Remove(faction);
-                    unchosenReverse.Remove(faction);
-                }
-            }
-
-            //update static lists
-            IFIListHolder.knownFactions = knownFactions;
-            IFIListHolder.chosenForward = chosenForward;
-            IFIListHolder.chosenReverse = chosenReverse;
-            IFIListHolder.unchosenForward = unchosenForward;
-            IFIListHolder.unchosenReverse = unchosenReverse;
         }
 
         public override void ExposeData()
         {
-            base.ExposeData();
-            Scribe_Collections.Look(ref knownFactions, "knownFactions", LookMode.Reference);
-            Scribe_Collections.Look(ref chosenForward, "chosenForward", LookMode.Reference);
-            Scribe_Collections.Look(ref chosenReverse, "chosenReverse", LookMode.Reference);
-            Scribe_Collections.Look(ref unchosenForward, "unchosenForward", LookMode.Reference);
-            Scribe_Collections.Look(ref unchosenReverse, "unchosenReverse", LookMode.Reference);
+            Scribe_Collections.Look(ref iconDictionary, "iconDictionary", LookMode.Reference, LookMode.Value, ref iconFactListTmp, ref iconBehaviorListTmp);
+            Scribe_Collections.Look(ref colorDictionary, "colorDictionary", LookMode.Reference, LookMode.Value, ref colorFactListTmp, ref colorBehaviorListTmp);
         }
+
+        public void PopulateIconDictionary()
+        {
+            if (iconDictionary == null)
+            {
+                iconDictionary = new Dictionary<Faction, bool>();
+            }
+            if (colorDictionary == null)
+            {
+                colorDictionary = new Dictionary<Faction, bool>();
+            }
+
+            IdeoFactIconSettings.CustomizeSettings setting = IdeoFactIconSettings.ideoAsFact;
+
+            foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
+            {
+                if (setting == IdeoFactIconSettings.CustomizeSettings.All)
+                {
+                    iconDictionary[faction] = true;
+                    colorDictionary[faction] = false;
+                    continue;
+                }
+
+                //could have made this an || in the previous if statement but is cleaner to read this way
+                else if (setting == IdeoFactIconSettings.CustomizeSettings.Just_Player)
+                {
+                    if (faction.IsPlayer)
+                    {
+                        iconDictionary[faction] = true;
+                        colorDictionary[faction] = false;
+                        continue;
+                    }
+                    else
+                    {
+                        iconDictionary[faction] = false;
+                        colorDictionary[faction] = false;
+                        continue;
+                    }
+                }
+
+                else
+                {
+                    //account for newly-added factions or those somehow missing, leave existing entries untouched
+                    if (!iconDictionary.ContainsKey(faction))
+                    {
+                        iconDictionary[faction] = false;
+                        colorDictionary[faction] = false;
+                        continue;
+                    }
+                }
+            }
+            needRecache = true;
+        }
+
+        public static void RecacheIcons()
+        {
+            if (Current.Game == null)
+            {
+                Log.Error("Ideologion Icon as Faction Icon tried to recache faction icons with no Game in progress. Please send your error log to the developer.");
+                return;
+            }
+
+            GameComponent_FactionLists comp = Current.Game.GetComponent<GameComponent_FactionLists>();
+
+            if (comp == null)
+            {
+                Log.Error("Ideologion Icon as Faction Icon tried to recache faction icons but couldn't find the GameComponent. Please send your error log to the developer.");
+                return;
+            }
+
+            if (comp.iconDictionary.NullOrEmpty())
+            {
+                comp.PopulateIconDictionary();
+            }
+
+            iconCacheDict = new Dictionary<Faction, Texture2D>();
+            foreach (var entry in comp.iconDictionary)
+            {
+                comp.RecacheIconSingle(entry.Key, entry.Value);
+            }
+        }
+
+        private void RecacheIconSingle(Faction faction, bool behavior)
+        {
+            Texture2D tex = null;
+            if (behavior)
+            {
+                tex = faction.ideos?.PrimaryIdeo?.Icon;
+            }
+            if (tex == null)
+            {
+                tex = faction.def.FactionIcon;
+            }
+
+            iconCacheDict.Add(faction, tex);
+        }
+
     }
 }

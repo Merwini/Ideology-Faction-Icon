@@ -7,13 +7,13 @@ using UnityEngine;
 using Verse;
 using RimWorld;
 
-namespace Ideology_Faction_Icon
+namespace nuff.Ideology_Faction_Icon
 {
-	public static class Listing_StandardExtensions
-	{
+    public static class Listing_StandardExtensions
+    {
 
-		#region EnumLicense
-		/*
+        #region EnumLicense
+        /*
 		    Code used and modified from Compact Hediffs by PeteTimesSix, under MIT License
 		 
 		    MIT License
@@ -39,107 +39,107 @@ namespace Ideology_Faction_Icon
 			SOFTWARE.
 		 */
 
-		#endregion
+        #endregion
 
-		public static float ButtonTextPadding = 5f;
-		public static float AfterLabelMinGap = 10f;
+        public static float ButtonTextPadding = 5f;
+        public static float AfterLabelMinGap = 10f;
 
-		public static readonly Color SelectedButtonColor = new Color(.65f, 1f, .65f);
+        public static readonly Color SelectedButtonColor = new Color(.65f, 1f, .65f);
 
-		public static void EnumSelector<T>(this Listing_Standard listing, ref T value, string label, string valueLabelPrefix, string valueTooltipPostfix = "_tooltip", string tooltip = null) where T : Enum
-		{
-			string[] names = Enum.GetNames(value.GetType());
+        public static void EnumSelector<T>(this Listing_Standard listing, ref T value, string label, string valueLabelPrefix, string valueTooltipPostfix = "_tooltip", string tooltip = null) where T : Enum
+        {
+            string[] names = Enum.GetNames(value.GetType());
 
-			float lineHeight = Text.LineHeight;
-			float labelWidth = Text.CalcSize(label).x + AfterLabelMinGap;
+            float lineHeight = Text.LineHeight;
+            float labelWidth = Text.CalcSize(label).x + AfterLabelMinGap;
 
-			var tempWidth = listing.ColumnWidth;
+            var tempWidth = listing.ColumnWidth;
 
-			float buttonsWidth = 0f;
-			foreach (var name in names)
-			{
-				string text = (valueLabelPrefix + name).Translate();
-				float width = Text.CalcSize(text).x + ButtonTextPadding * 2f;
-				if (buttonsWidth < width)
-					buttonsWidth = width;
-			}
+            float buttonsWidth = 0f;
+            foreach (var name in names)
+            {
+                string text = (valueLabelPrefix + name).Translate();
+                float width = Text.CalcSize(text).x + ButtonTextPadding * 2f;
+                if (buttonsWidth < width)
+                    buttonsWidth = width;
+            }
 
-			bool fitsOnLabelRow = (((buttonsWidth * names.Length) + labelWidth) < tempWidth);
-			float buttonsRectWidth = fitsOnLabelRow ?
-				listing.ColumnWidth - (labelWidth) :
-				listing.ColumnWidth;
+            bool fitsOnLabelRow = (((buttonsWidth * names.Length) + labelWidth) < tempWidth);
+            float buttonsRectWidth = fitsOnLabelRow ?
+                listing.ColumnWidth - (labelWidth) :
+                listing.ColumnWidth;
 
-			int rowNum = 0;
-			int columnNum = 0;
-			int maxColumnNum = 0;
-			foreach (var name in names)
-			{
-				if ((columnNum + 1) * buttonsWidth > buttonsRectWidth)
-				{
-					columnNum = 0;
-					rowNum++;
-				}
-				float x = (columnNum * buttonsWidth);
-				float y = rowNum * lineHeight;
-				columnNum++;
-				if (rowNum == 0 && maxColumnNum < columnNum)
-					maxColumnNum = columnNum;
-			}
-			rowNum++; //label row
-			if (!fitsOnLabelRow)
-				rowNum++;
+            int rowNum = 0;
+            int columnNum = 0;
+            int maxColumnNum = 0;
+            foreach (var name in names)
+            {
+                if ((columnNum + 1) * buttonsWidth > buttonsRectWidth)
+                {
+                    columnNum = 0;
+                    rowNum++;
+                }
+                float x = (columnNum * buttonsWidth);
+                float y = rowNum * lineHeight;
+                columnNum++;
+                if (rowNum == 0 && maxColumnNum < columnNum)
+                    maxColumnNum = columnNum;
+            }
+            rowNum++; //label row
+            if (!fitsOnLabelRow)
+                rowNum++;
 
-			Rect wholeRect = listing.GetRect((float)rowNum * lineHeight);
+            Rect wholeRect = listing.GetRect((float)rowNum * lineHeight);
 
-			if (!tooltip.NullOrEmpty())
-			{
-				if (Mouse.IsOver(wholeRect))
-				{
-					Widgets.DrawHighlight(wholeRect);
-				}
-				TooltipHandler.TipRegion(wholeRect, tooltip);
-			}
+            if (!tooltip.NullOrEmpty())
+            {
+                if (Mouse.IsOver(wholeRect))
+                {
+                    Widgets.DrawHighlight(wholeRect);
+                }
+                TooltipHandler.TipRegion(wholeRect, tooltip);
+            }
 
-			Rect labelRect = wholeRect.TopPartPixels(lineHeight).LeftPartPixels(labelWidth);
-			GUI.color = Color.white;
-			Widgets.Label(labelRect, label);
+            Rect labelRect = wholeRect.TopPartPixels(lineHeight).LeftPartPixels(labelWidth);
+            GUI.color = Color.white;
+            Widgets.Label(labelRect, label);
 
-			Rect buttonsRect = fitsOnLabelRow ?
-				wholeRect.RightPartPixels(buttonsRectWidth) :
-				wholeRect.BottomPartPixels(wholeRect.height - lineHeight);
+            Rect buttonsRect = fitsOnLabelRow ?
+                wholeRect.RightPartPixels(buttonsRectWidth) :
+                wholeRect.BottomPartPixels(wholeRect.height - lineHeight);
 
-			buttonsWidth = buttonsRectWidth / (float)maxColumnNum;
+            buttonsWidth = buttonsRectWidth / (float)maxColumnNum;
 
-			rowNum = 0;
-			columnNum = 0;
-			foreach (var name in names)
-			{
-				if ((columnNum + 1) * buttonsWidth > buttonsRectWidth)
-				{
-					columnNum = 0;
-					rowNum++;
-				}
-				float x = (columnNum * buttonsWidth);
-				float y = rowNum * lineHeight;
-				columnNum++;
-				//string buttonText = (valueLabelPrefix + name).Translate(); //TODO translations?
-				string buttonText = (valueLabelPrefix + name);
-				var enumValue = (T)Enum.Parse(value.GetType(), name);
-				GUI.color = value.Equals(enumValue) ? SelectedButtonColor : Color.white;
-				var buttonRect = new Rect(buttonsRect.x + x, buttonsRect.y + y, buttonsWidth, lineHeight);
-				if (valueTooltipPostfix != null)
-					TooltipHandler.TipRegion(buttonRect, (valueLabelPrefix + name + valueTooltipPostfix).Translate());
-				bool clicked = Widgets.ButtonText(buttonRect, buttonText);
-				if (clicked)
-					value = enumValue;
-			}
+            rowNum = 0;
+            columnNum = 0;
+            foreach (var name in names)
+            {
+                if ((columnNum + 1) * buttonsWidth > buttonsRectWidth)
+                {
+                    columnNum = 0;
+                    rowNum++;
+                }
+                float x = (columnNum * buttonsWidth);
+                float y = rowNum * lineHeight;
+                columnNum++;
+                //string buttonText = (valueLabelPrefix + name).Translate(); //TODO translations?
+                string buttonText = (valueLabelPrefix + name);
+                var enumValue = (T)Enum.Parse(value.GetType(), name);
+                GUI.color = value.Equals(enumValue) ? SelectedButtonColor : Color.white;
+                var buttonRect = new Rect(buttonsRect.x + x, buttonsRect.y + y, buttonsWidth, lineHeight);
+                if (valueTooltipPostfix != null)
+                    TooltipHandler.TipRegion(buttonRect, (valueLabelPrefix + name + valueTooltipPostfix).Translate());
+                bool clicked = Widgets.ButtonText(buttonRect, buttonText);
+                if (clicked)
+                    value = enumValue;
+            }
 
-			listing.Gap(listing.verticalSpacing);
-			GUI.color = Color.white;
-		}
+            listing.Gap(listing.verticalSpacing);
+            GUI.color = Color.white;
+        }
 
-		#region ListLicense
-		/*
+        #region ListLicense
+        /*
 		 * Code used and modified from Minify Everything by erdelf, under MIT License
 
 			MIT License
@@ -164,107 +164,107 @@ namespace Ideology_Faction_Icon
 			OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 			SOFTWARE.
 		 */
-		#endregion
-		public static void ListControl(this Listing_Standard listingStandard, Rect inRect, ref List<Faction> leftList, ref List<Faction> rightList, ref List<Faction> antiList,
-										ref string searchTerm, ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject,
-										string columnLabel, float rectPCT)
-		{
-			string tempString = searchTerm;
+        #endregion
+        public static void ListControl(this Listing_Standard listingStandard, Rect inRect, ref List<Faction> leftList, ref List<Faction> rightList, ref List<Faction> antiList,
+                                        ref string searchTerm, ref Vector2 leftScrollPosition, ref Vector2 rightScrollPosition, ref Faction leftSelectedObject, ref Faction rightSelectedObject,
+                                        string columnLabel, float rectPCT)
+        {
+            string tempString = searchTerm;
 
-			Rect listControlRect = new Rect(0, 0, inRect.width * 0.9f, inRect.height * rectPCT);
-			listingStandard.BeginSection(inRect.height * rectPCT);
-			Rect topRect = listControlRect.TopPart(pct: 0.05f / rectPCT);
-			searchTerm = Widgets.TextField(rect: topRect.RightPart(pct: 0.95f).LeftPart(pct: 0.95f), text: searchTerm);
-			float topPartF = 0.1f / rectPCT;
-			Rect labelRect = listControlRect.TopPart(pct: topPartF).BottomHalf();
-			Rect bottomRect = listControlRect.BottomPart(pct: 1 - topPartF);
+            Rect listControlRect = new Rect(0, 0, inRect.width * 0.9f, inRect.height * rectPCT);
+            listingStandard.BeginSection(inRect.height * rectPCT);
+            Rect topRect = listControlRect.TopPart(pct: 0.05f / rectPCT);
+            searchTerm = Widgets.TextField(rect: topRect.RightPart(pct: 0.95f).LeftPart(pct: 0.95f), text: searchTerm);
+            float topPartF = 0.1f / rectPCT;
+            Rect labelRect = listControlRect.TopPart(pct: topPartF).BottomHalf();
+            Rect bottomRect = listControlRect.BottomPart(pct: 1 - topPartF);
 
-			#region leftSide
+            #region leftSide
 
-			Rect leftRect = bottomRect.LeftHalf().RightPart(pct: 0.9f).LeftPart(pct: 0.9f);
-			GUI.BeginGroup(position: leftRect, style: new GUIStyle(other: GUI.skin.box));
-			List<Faction> tempList2 = rightList;
-			List<Faction> tempList = leftList.Where(predicate: fact => fact.Name.ToLower().Contains(tempString.ToLower())
-																		&& !tempList2.Contains(fact)).ToList();
-			float num = 3f;
-			Widgets.BeginScrollView(outRect: leftRect.AtZero(), scrollPosition: ref leftScrollPosition,
-									viewRect: new Rect(x: 0f, y: 0f, width: leftRect.width / 10 * 9, height: tempList.Count * 32f));
-			if (!tempList.NullOrEmpty())
-			{
-				foreach (Faction fact in tempList)
-				{
-					Rect rowRect = new Rect(x: 5, y: num, width: leftRect.width - 6, height: 30);
-					Widgets.DrawHighlightIfMouseover(rect: rowRect);
-					if (fact == leftSelectedObject)
-						Widgets.DrawHighlightSelected(rect: rowRect);
-					Widgets.Label(rect: rowRect, label: fact.Name);
-					if (Widgets.ButtonInvisible(butRect: rowRect))
-						leftSelectedObject = fact;
-
-					num += 32f;
-				}
-			}
-			Widgets.EndScrollView();
-			GUI.EndGroup();
-
-			#endregion
-
-
-			#region rightSide
-
-			Widgets.Label(rect: labelRect.RightHalf().RightPart(pct: 0.9f), label: columnLabel);
-			Rect rightRect = bottomRect.RightHalf().RightPart(pct: 0.9f).LeftPart(pct: 0.9f);
-			GUI.BeginGroup(position: rightRect, style: GUI.skin.box);
-			num = 6f;
-			Widgets.BeginScrollView(outRect: rightRect.AtZero(), scrollPosition: ref rightScrollPosition,
-									viewRect: new Rect(x: 0f, y: 0f, width: rightRect.width / 5 * 4, height: rightList.Count * 32f));
-			if (!rightList.NullOrEmpty())
-			{
-				foreach (Faction fact in rightList.Where(predicate: fact => (fact.Name.Contains(value: tempString))))
-				{
-					Rect rowRect = new Rect(x: 5, y: num, width: leftRect.width - 6, height: 30);
-					Widgets.DrawHighlightIfMouseover(rect: rowRect);
-					if (fact == rightSelectedObject)
-						Widgets.DrawHighlightSelected(rect: rowRect);
-					Widgets.Label(rect: rowRect, label: fact.Name);
-					if (Widgets.ButtonInvisible(butRect: rowRect))
-						rightSelectedObject = fact;
-
-					num += 32f;
-				}
-			}
-			Widgets.EndScrollView();
-			GUI.EndGroup();
-
-			#endregion
-
-
-			#region buttons
-
-			if (Widgets.ButtonImage(butRect: bottomRect.BottomPart(pct: 0.6f).TopPart(pct: 0.1f).RightPart(pct: 0.525f).LeftPart(pct: 0.1f), tex: TexUI.ArrowTexRight) &&
-				leftSelectedObject != null)
-			{
-				rightList.Add(item: leftSelectedObject);
-				if (antiList.Contains(leftSelectedObject))
+            Rect leftRect = bottomRect.LeftHalf().RightPart(pct: 0.9f).LeftPart(pct: 0.9f);
+            GUI.BeginGroup(position: leftRect, style: new GUIStyle(other: GUI.skin.box));
+            List<Faction> tempList2 = rightList;
+            List<Faction> tempList = leftList.Where(predicate: fact => fact.Name.ToLower().Contains(tempString.ToLower())
+                                                                        && !tempList2.Contains(fact)).ToList();
+            float num = 3f;
+            Widgets.BeginScrollView(outRect: leftRect.AtZero(), scrollPosition: ref leftScrollPosition,
+                                    viewRect: new Rect(x: 0f, y: 0f, width: leftRect.width / 10 * 9, height: tempList.Count * 32f));
+            if (!tempList.NullOrEmpty())
+            {
+                foreach (Faction fact in tempList)
                 {
-					antiList.Remove(leftSelectedObject);
+                    Rect rowRect = new Rect(x: 5, y: num, width: leftRect.width - 6, height: 30);
+                    Widgets.DrawHighlightIfMouseover(rect: rowRect);
+                    if (fact == leftSelectedObject)
+                        Widgets.DrawHighlightSelected(rect: rowRect);
+                    Widgets.Label(rect: rowRect, label: fact.Name);
+                    if (Widgets.ButtonInvisible(butRect: rowRect))
+                        leftSelectedObject = fact;
+
+                    num += 32f;
                 }
-				rightList = rightList.OrderBy(keySelector: fact => fact.Name).ToList();
-				rightSelectedObject = leftSelectedObject;
-				leftSelectedObject = null;
-			}
+            }
+            Widgets.EndScrollView();
+            GUI.EndGroup();
 
-			if (Widgets.ButtonImage(butRect: bottomRect.BottomPart(pct: 0.4f).TopPart(pct: 0.15f).RightPart(pct: 0.525f).LeftPart(pct: 0.1f), tex: TexUI.ArrowTexLeft) &&
-				rightSelectedObject != null)
-			{
-				rightList.Remove(item: rightSelectedObject);
-				leftSelectedObject = rightSelectedObject;
-				rightSelectedObject = null;
-			}
+            #endregion
 
-			#endregion
-			listingStandard.EndSection(listingStandard);
-		}
 
-	}
+            #region rightSide
+
+            Widgets.Label(rect: labelRect.RightHalf().RightPart(pct: 0.9f), label: columnLabel);
+            Rect rightRect = bottomRect.RightHalf().RightPart(pct: 0.9f).LeftPart(pct: 0.9f);
+            GUI.BeginGroup(position: rightRect, style: GUI.skin.box);
+            num = 6f;
+            Widgets.BeginScrollView(outRect: rightRect.AtZero(), scrollPosition: ref rightScrollPosition,
+                                    viewRect: new Rect(x: 0f, y: 0f, width: rightRect.width / 5 * 4, height: rightList.Count * 32f));
+            if (!rightList.NullOrEmpty())
+            {
+                foreach (Faction fact in rightList.Where(predicate: fact => (fact.Name.Contains(value: tempString))))
+                {
+                    Rect rowRect = new Rect(x: 5, y: num, width: leftRect.width - 6, height: 30);
+                    Widgets.DrawHighlightIfMouseover(rect: rowRect);
+                    if (fact == rightSelectedObject)
+                        Widgets.DrawHighlightSelected(rect: rowRect);
+                    Widgets.Label(rect: rowRect, label: fact.Name);
+                    if (Widgets.ButtonInvisible(butRect: rowRect))
+                        rightSelectedObject = fact;
+
+                    num += 32f;
+                }
+            }
+            Widgets.EndScrollView();
+            GUI.EndGroup();
+
+            #endregion
+
+
+            #region buttons
+
+            if (Widgets.ButtonImage(butRect: bottomRect.BottomPart(pct: 0.6f).TopPart(pct: 0.1f).RightPart(pct: 0.525f).LeftPart(pct: 0.1f), tex: TexUI.ArrowTexRight) &&
+                leftSelectedObject != null)
+            {
+                rightList.Add(item: leftSelectedObject);
+                if (antiList.Contains(leftSelectedObject))
+                {
+                    antiList.Remove(leftSelectedObject);
+                }
+                rightList = rightList.OrderBy(keySelector: fact => fact.Name).ToList();
+                rightSelectedObject = leftSelectedObject;
+                leftSelectedObject = null;
+            }
+
+            if (Widgets.ButtonImage(butRect: bottomRect.BottomPart(pct: 0.4f).TopPart(pct: 0.15f).RightPart(pct: 0.525f).LeftPart(pct: 0.1f), tex: TexUI.ArrowTexLeft) &&
+                rightSelectedObject != null)
+            {
+                rightList.Remove(item: rightSelectedObject);
+                leftSelectedObject = rightSelectedObject;
+                rightSelectedObject = null;
+            }
+
+            #endregion
+            listingStandard.EndSection(listingStandard);
+        }
+
+    }
 }
