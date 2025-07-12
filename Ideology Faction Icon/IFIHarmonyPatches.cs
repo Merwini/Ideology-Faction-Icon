@@ -22,10 +22,7 @@ namespace nuff.Ideology_Faction_Icon
             harmony.PatchAll();
         }
 
-        public static Texture2D GetIconForFaction(Faction faction)
-        {
-            return GameComponent_FactionLists.iconCacheDict[faction];
-        }
+        
 
         //World with factions is generated and displayed while selecting a tile, before icons have a chance to be cached
         [HarmonyPatch(typeof(Page_SelectStartingSite))]
@@ -35,6 +32,17 @@ namespace nuff.Ideology_Faction_Icon
             public static void Postfix()
             {
                 //need to recahce right away so that settlements display correctly when player goes to choose a landing site
+                GameComponent_FactionLists.RecacheIcons();
+            }
+        }
+
+        [HarmonyPatch(typeof(Page_ChooseIdeoPreset))]
+        [HarmonyPatch("PostOpen")]
+        public static class Page_ChooseIdeoPreset_PostOpen_Prefix
+        {
+            public static void Prefix()
+            {
+                //have to recache here as well because new Odyssey scenario / ScenPart_ForcedMap skip Page_SelectStartingSite
                 GameComponent_FactionLists.RecacheIcons();
             }
         }
@@ -422,7 +430,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 if (pawn != null && (__result != null))
                 {
-                    __result = GetIconForFaction(pawn.Faction);
+                    __result = Get_FactionIcon_Helper(pawn.Faction);
                 }
             }
         }
@@ -492,7 +500,7 @@ namespace nuff.Ideology_Faction_Icon
         {
             public static void Postfix(Settlement __instance, ref Texture2D __result)
             {
-                __result = GetIconForFaction(__instance.Faction);
+                __result = Get_FactionIcon_Helper(__instance.Faction);
             }
         }
 
@@ -586,7 +594,7 @@ namespace nuff.Ideology_Faction_Icon
 
                 foreach (FloatMenuOption fmo in __result)
                 {
-                    itemIconField.SetValue(fmo, GetIconForFaction(faction));
+                    itemIconField.SetValue(fmo, Get_FactionIcon_Helper(faction));
 
                     yield return fmo;
                 }
