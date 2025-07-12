@@ -26,6 +26,14 @@ namespace nuff.Ideology_Faction_Icon
 
         public GameComponent_FactionLists(Game game)
         {
+            if (iconDictionary == null)
+            {
+                iconDictionary = new Dictionary<Faction, bool>();
+            }
+            if (colorDictionary == null)
+            {
+                colorDictionary = new Dictionary<Faction, bool>();
+            }
         }
 
         public override void StartedNewGame()
