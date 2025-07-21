@@ -66,8 +66,8 @@ namespace nuff.Ideology_Faction_Icon
                             : IdeoFactIconSettings.Behavior.Default;
 
                         IdeoFactIconSettings.ColorBehavior colorBehavior = comp.colorDictionary[faction]
-                            ? IdeoFactIconSettings.ColorBehavior.Ideoligion
-                            : IdeoFactIconSettings.ColorBehavior.Faction;
+                            ? IdeoFactIconSettings.ColorBehavior.UseIdeoligionColor
+                            : IdeoFactIconSettings.ColorBehavior.UseFactionColor;
 
                         scrollList.Label(faction.Name);
                         if (faction.ideos?.PrimaryIdeo != null)
@@ -84,7 +84,7 @@ namespace nuff.Ideology_Faction_Icon
                         }
 
                         comp.iconDictionary[faction] = (behavior == IdeoFactIconSettings.Behavior.UseIdeoForFaction);
-                        comp.colorDictionary[faction] = (colorBehavior == IdeoFactIconSettings.ColorBehavior.Ideoligion);
+                        comp.colorDictionary[faction] = (colorBehavior == IdeoFactIconSettings.ColorBehavior.UseIdeoligionColor);
                         scrollList.Gap();
                     }
 
@@ -131,8 +131,8 @@ namespace nuff.Ideology_Faction_Icon
 
         public enum ColorBehavior
         {
-            Faction,
-            Ideoligion
+            UseFactionColor,
+            UseIdeoligionColor
         }
 
         public static CustomizeSettings ideoAsFact = CustomizeSettings.Just_Player;
