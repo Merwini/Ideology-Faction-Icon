@@ -590,7 +590,7 @@ namespace nuff.Ideology_Faction_Icon
 
             public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
             {
-                FieldInfo itemIconField = typeof(FloatMenuOption).GetField("itemIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+                FieldInfo itemIconField = typeof(FloatMenuOption).GetField("iconTex", BindingFlags.Instance | BindingFlags.NonPublic);
 
                 foreach (FloatMenuOption fmo in __result)
                 {
