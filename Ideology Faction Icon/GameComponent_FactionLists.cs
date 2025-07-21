@@ -63,14 +63,8 @@ namespace nuff.Ideology_Faction_Icon
 
         public void PopulateIconDictionary()
         {
-            if (iconDictionary == null)
-            {
-                iconDictionary = new Dictionary<Faction, bool>();
-            }
-            if (colorDictionary == null)
-            {
-                colorDictionary = new Dictionary<Faction, bool>();
-            }
+            iconDictionary = new Dictionary<Faction, bool>();
+            colorDictionary = new Dictionary<Faction, bool>();
 
             IdeoFactIconSettings.CustomizeSettings setting = IdeoFactIconSettings.ideoAsFact;
 
