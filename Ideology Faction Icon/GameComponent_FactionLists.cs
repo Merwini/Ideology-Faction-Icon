@@ -70,40 +70,7 @@ namespace nuff.Ideology_Faction_Icon
 
             foreach (Faction faction in Find.FactionManager.AllFactionsListForReading)
             {
-                if (setting == IdeoFactIconSettings.CustomizeSettings.All)
-                {
-                    iconDictionary[faction] = true;
-                    colorDictionary[faction] = false;
-                    continue;
-                }
-
-                //could have made this an || in the previous if statement but is cleaner to read this way
-                else if (setting == IdeoFactIconSettings.CustomizeSettings.Just_Player)
-                {
-                    if (faction.IsPlayer)
-                    {
-                        iconDictionary[faction] = true;
-                        colorDictionary[faction] = false;
-                        continue;
-                    }
-                    else
-                    {
-                        iconDictionary[faction] = false;
-                        colorDictionary[faction] = false;
-                        continue;
-                    }
-                }
-
-                else
-                {
-                    //account for newly-added factions or those somehow missing, leave existing entries untouched
-                    if (!iconDictionary.ContainsKey(faction))
-                    {
-                        iconDictionary[faction] = false;
-                        colorDictionary[faction] = false;
-                        continue;
-                    }
-                }
+                TryAddFaction(faction, setting);
             }
             needRecache = true;
         }
@@ -151,5 +118,60 @@ namespace nuff.Ideology_Faction_Icon
             iconCacheDict.Add(faction, tex);
         }
 
+
+        internal void TryAddFaction(Faction faction, IdeoFactIconSettings.CustomizeSettings setting)
+        {
+            //Log.Warning("Adding faction " + faction.Name + " with setting " + setting);
+            needRecache = true;
+
+            if (setting == IdeoFactIconSettings.CustomizeSettings.All)
+            {
+                iconDictionary[faction] = true;
+                colorDictionary[faction] = false;
+                return;
+            }
+
+            //could have made this an || in the previous if statement but is cleaner to read this way
+            else if (setting == IdeoFactIconSettings.CustomizeSettings.Just_Player)
+            {
+                if (faction.IsPlayer)
+                {
+                    iconDictionary[faction] = true;
+                    colorDictionary[faction] = false;
+                    return;
+                }
+                else
+                {
+                    iconDictionary[faction] = false;
+                    colorDictionary[faction] = false;
+                    return;
+                }
+            }
+
+            else
+            {
+                //account for newly-added factions or those somehow missing, leave existing entries untouched
+                if (!iconDictionary.ContainsKey(faction))
+                {
+                    iconDictionary[faction] = false;
+                    colorDictionary[faction] = false;
+                    return;
+                }
+            }
+        }
+
+        internal void TryRemoveFaction(Faction faction)
+        {
+            needRecache = true;
+
+            if (iconDictionary.ContainsKey(faction))
+            {
+                iconDictionary.Remove(faction);
+            }
+            if (colorDictionary.ContainsKey(faction))
+            {
+                colorDictionary.Remove(faction);
+            }
+        }
     }
 }
