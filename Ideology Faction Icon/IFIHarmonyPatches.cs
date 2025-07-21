@@ -782,5 +782,27 @@ namespace nuff.Ideology_Faction_Icon
                 __result.color = targetColor;
             }
         }
+
+        [HarmonyPatch(typeof(FactionManager))]
+        [HarmonyPatch("Add")]
+        public static class FactionManager_Add_Postfix
+        {
+            public static void Postfix(Faction faction)
+            {
+                var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
+                comp.TryAddFaction(faction, IdeoFactIconSettings.ideoAsFact);
+            }
+        }
+
+        [HarmonyPatch(typeof(FactionManager))]
+        [HarmonyPatch("Remove")]
+        public static class FactionManager_Remove_Postfix
+        {
+            public static void Postfix(Faction faction)
+            {
+                var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
+                comp.TryRemoveFaction(faction);
+            }
+        }
     }
 }
