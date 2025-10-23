@@ -791,6 +791,8 @@ namespace nuff.Ideology_Faction_Icon
             {
                 var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
                 comp.TryAddFaction(faction, IdeoFactIconSettings.ideoAsFact);
+                //GameComponent_FactionLists.RecacheIcons();
+                comp.needRecache = true;
             }
         }
 
@@ -802,6 +804,31 @@ namespace nuff.Ideology_Faction_Icon
             {
                 var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
                 comp.TryRemoveFaction(faction);
+            }
+        }
+
+        [HarmonyPatch(typeof(Page_ChooseIdeoPreset))]
+        [HarmonyPatch("DoClassic")]
+        public static class Page_ChooseIdeoPreset_DoClassic_Postfix
+        {
+            public static void Postfix()
+            {
+                var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
+                if (comp != null)
+                {
+                    List<Faction> iconKeys = comp.iconDictionary.Keys.ToList();
+                    foreach (var key in iconKeys)
+                    {
+                        comp.iconDictionary[key] = false;
+                    }
+
+                    //doing this instead of adding to above behavior, in case dictionaries are somehow desynced
+                    List<Faction> colorKeys = comp.colorDictionary.Keys.ToList();
+                    foreach (var key in colorKeys)
+                    {
+                        comp.colorDictionary[key] = false;
+                    }
+                }
             }
         }
     }

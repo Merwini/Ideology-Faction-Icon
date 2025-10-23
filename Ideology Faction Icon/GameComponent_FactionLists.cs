@@ -43,7 +43,7 @@ namespace nuff.Ideology_Faction_Icon
 
         public override void LoadedGame()
         {
-            PopulateIconDictionary();
+            needRecache = true;
         }
 
         public override void GameComponentTick()

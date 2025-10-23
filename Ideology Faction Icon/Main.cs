@@ -106,7 +106,7 @@ namespace nuff.Ideology_Faction_Icon
             if (Current.Game != null)
             {
                 GameComponent_FactionLists comp = Current.Game.GetComponent<GameComponent_FactionLists>();
-                comp.PopulateIconDictionary();
+                comp.needRecache = true;
             }
 
             base.WriteSettings();
