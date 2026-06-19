@@ -831,5 +831,19 @@ namespace nuff.Ideology_Faction_Icon
                 }
             }
         }
+
+        [HarmonyPatch(typeof(Dialog_ChooseIdeoSymbols))]
+        [HarmonyPatch("TryAccept")]
+        public static class Dialog_ChooseIdeoSymbols_TryAccept_Postfix
+        {
+            public static void Postfix()
+            {
+                GameComponent_FactionLists comp = GameComponent_FactionLists.Instance;
+                if (comp != null)
+                {
+                    comp.needRecache = true;
+                }
+            }
+        }
     }
 }

@@ -12,6 +12,8 @@ namespace nuff.Ideology_Faction_Icon
 {
     public class GameComponent_FactionLists : GameComponent
     {
+        public static GameComponent_FactionLists Instance { get; private set; }
+
         internal Dictionary<Faction, bool> iconDictionary;
         internal Dictionary<Faction, bool> colorDictionary;
 
@@ -44,6 +46,13 @@ namespace nuff.Ideology_Faction_Icon
         public override void LoadedGame()
         {
             needRecache = true;
+        }
+
+        public override void FinalizeInit()
+        {
+            Instance = this;
+
+            base.FinalizeInit();
         }
 
         public override void GameComponentTick()
