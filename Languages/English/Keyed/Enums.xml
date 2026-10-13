@@ -2,13 +2,27 @@
 <LanguageData>
     
     <IFI_Just_Player>Just player</IFI_Just_Player>
+    <IFI_Just_Player_tooltip>Only your faction will be affected</IFI_Just_Player_tooltip>
+
     <IFI_All>All</IFI_All>
+    <IFI_All_tooltip>All factions will be affected</IFI_All_tooltip>
+
     <IFI_Choose>Choose</IFI_Choose>
+    <IFI_Choose_tooltip>Pick and choose which factions will be affected</IFI_Choose_tooltip>
+
 
     <IFI_Default>Default</IFI_Default>
+    <IFI_Default_tooltip>Use faction's default icon</IFI_Default_tooltip>
+
     <IFI_UseIdeoForFaction>Use ideo icon for faction</IFI_UseIdeoForFaction>
+    <IFI_UseIdeoForFaction_tooltip>Use ideoligion icon for faction</IFI_UseIdeoForFaction_tooltip>
+
 
     <IFI_UseFactionColor>Use faction color</IFI_UseFactionColor>
+    <IFI_UseFactionColor_tooltip>Use faction's default icon color</IFI_UseFactionColor_tooltip>
+
     <IFI_UseIdeoligionColor>Use ideoligion color</IFI_UseIdeoligionColor>
+    <IFI_UseIdeoligionColor_tooltip>Use ideoligion's color</IFI_UseIdeoligionColor_tooltip>
+
     
 </LanguageData>
