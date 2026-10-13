@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Verse;
 using LudeonTK;
 using RimWorld;
@@ -44,7 +42,7 @@ namespace nuff.Ideology_Faction_Icon
                 return;
             }
 
-            foreach (var faction in comp.iconDictionary.Keys.ToList())
+            foreach (var faction in comp.iconDictionary.Keys)
             {
                 Log.Message(faction.Name);
             }
@@ -67,13 +65,13 @@ namespace nuff.Ideology_Faction_Icon
                 return;
             }
 
-            if (comp.iconDictionary == null)
+            if (comp.colorDictionary == null)
             {
                 Log.Warning("Dictionary is null");
                 return;
             }
 
-            foreach (var faction in comp.colorDictionary.Keys.ToList())
+            foreach (var faction in comp.colorDictionary.Keys)
             {
                 Log.Message(faction.Name);
             }

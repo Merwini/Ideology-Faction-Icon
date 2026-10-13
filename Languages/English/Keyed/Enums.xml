@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+    
+    <IFI_Just_Player>Just player</IFI_Just_Player>
+    <IFI_All>All</IFI_All>
+    <IFI_Choose>Choose</IFI_Choose>
+
+    <IFI_Default>Default</IFI_Default>
+    <IFI_UseIdeoForFaction>Use ideo icon for faction</IFI_UseIdeoForFaction>
+
+    <IFI_UseFactionColor>Use faction color</IFI_UseFactionColor>
+    <IFI_UseIdeoligionColor>Use ideoligion color</IFI_UseIdeoligionColor>
+    
+</LanguageData>

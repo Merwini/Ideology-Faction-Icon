@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Verse;
 using RimWorld;
 using RimWorld.Planet;
@@ -16,10 +14,46 @@ namespace nuff.Ideology_Faction_Icon
     [StaticConstructorOnStartup]
     public static class HarmonyPatches
     {
+        static readonly MethodInfo getHelper = AccessTools.Method(typeof(HarmonyPatches), nameof(Get_FactionIcon_Helper));
+        static readonly FieldInfo factionDefField = AccessTools.Field(typeof(Faction), nameof(Faction.def));
+        static readonly MethodInfo factionIconGetter = AccessTools.PropertyGetter(typeof(FactionDef), nameof(FactionDef.FactionIcon));
+
         static HarmonyPatches()
         {
             Harmony harmony = new Harmony("nuff.rimworld.ideology_faction_icon");
             harmony.PatchAll();
+        }
+
+        private static bool ReplaceRangeWithCall(List<CodeInstruction> codes, int startIndex, int endIndex, MethodInfo helper)
+        {
+            if (helper == null || startIndex < 0 || endIndex < startIndex || endIndex >= codes.Count)
+            {
+                Log.Error("Ideoligion Icon as Faction Icon: invalid transpiler replacement range or helper; leaving instructions unchanged. Please send your error log to the developer.");
+                return false;
+            }
+
+            // Check instructions for whether they jump or are jumped to, don't replace them if so
+            for (int i = startIndex; i <= endIndex; i++)
+            {
+                FlowControl flow = codes[i].opcode.FlowControl;
+                if ((i > startIndex && (codes[i].labels.Count > 0 || codes[i].blocks.Count > 0))
+                    || flow == FlowControl.Branch || flow == FlowControl.Cond_Branch
+                    || flow == FlowControl.Return || flow == FlowControl.Throw)
+                {
+                    Log.Error($"Ideoligion Icon as Faction Icon: unsafe replacement for {helper.Name}; leaving instructions unchanged. Please send your error log to the developer.");
+                    return false;
+                }
+            }
+
+            // Mutate existing objects so labels and exception boundaries retain their positions
+            codes[startIndex].opcode = OpCodes.Call;
+            codes[startIndex].operand = helper;
+            for (int i = startIndex + 1; i <= endIndex; i++)
+            {
+                codes[i].opcode = OpCodes.Nop;
+                codes[i].operand = null;
+            }
+            return true;
         }
 
         
@@ -32,7 +66,7 @@ namespace nuff.Ideology_Faction_Icon
             public static void Postfix()
             {
                 //need to recahce right away so that settlements display correctly when player goes to choose a landing site
-                GameComponent_FactionLists.RecacheIcons();
+                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
             }
         }
 
@@ -43,7 +77,7 @@ namespace nuff.Ideology_Faction_Icon
             public static void Prefix()
             {
                 //have to recache here as well because new Odyssey scenario / ScenPart_ForcedMap skip Page_SelectStartingSite
-                GameComponent_FactionLists.RecacheIcons();
+                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
             }
         }
 
@@ -58,14 +92,14 @@ namespace nuff.Ideology_Faction_Icon
             }
         }
 
-        public static void GUI_DrawTexture_Helper(Rect position, Faction faction)
-        {
-            GUI.DrawTexture(position, GameComponent_FactionLists.iconCacheDict[faction]);
-        }
+        // public static void GUI_DrawTexture_Helper(Rect position, Faction faction)
+        // {
+        //     GUI.DrawTexture(position, GameComponent_FactionLists.Instance.GetTextureSafe(faction));
+        // }
 
         public static Texture2D Get_FactionIcon_Helper(Faction faction)
         {
-            return GameComponent_FactionLists.iconCacheDict[faction];
+            return GameComponent_FactionLists.Instance.GetTextureSafe(faction);
         }
 
 
@@ -90,31 +124,28 @@ namespace nuff.Ideology_Faction_Icon
 
         //RimWorld.InteractionDef.GetSymbol(Faction, Ideo)
         //todo test
-        [HarmonyPatch(typeof(InteractionDef))]
-        [HarmonyPatch("GetSymbol")]
+        [HarmonyPatch(typeof(InteractionDef), nameof(InteractionDef.GetSymbol))]
         public static class InteractionDef_GetSymbol_Postfix
         {
             public static void Postfix(InteractionDef __instance, ref Texture2D __result, Faction initiatorFaction)
             {
                 if (__instance.symbolSource == InteractionSymbolSource.InitiatorFaction && initiatorFaction != null)
                 {
-                    __result = GameComponent_FactionLists.iconCacheDict[initiatorFaction];
+                    __result = GameComponent_FactionLists.Instance.GetTextureSafe(initiatorFaction);
                 }
             }
         }
 
         //RimWorld.Faction.CommFloatMenuOption(Building_CommsConsole, Pawn)
         //Tested: works
-        [HarmonyPatch(typeof(Faction))]
-        [HarmonyPatch("CommFloatMenuOption")]
+        [HarmonyPatch(typeof(Faction), nameof(Faction.CommFloatMenuOption))]
         public static class Faction_CommFloatMenuOption_Postfix
         {
             public static void Postfix(Faction __instance, ref FloatMenuOption __result)
             {
                 if (__result != null)
                 {
-                    FieldInfo itemIconField = typeof(FloatMenuOption).GetField("iconTex", BindingFlags.Instance | BindingFlags.NonPublic);
-                    itemIconField.SetValue(__result, GameComponent_FactionLists.iconCacheDict[__instance]);
+                    __result.iconTex = GameComponent_FactionLists.Instance.GetTextureSafe(__instance);
                 }
             }
         }
@@ -124,131 +155,61 @@ namespace nuff.Ideology_Faction_Icon
 
         //RimWorld.Tradeable_RoyalFavor.DrawIcon(Rect iconRect)
         //Tested: Works
-        [HarmonyPatch(typeof(Tradeable_RoyalFavor))]
-        [HarmonyPatch("DrawIcon")]
+        [HarmonyPatch(typeof(Tradeable_RoyalFavor), nameof(Tradeable_RoyalFavor.DrawIcon))]
         public static class Tradeable_RoyalFavor_Patch
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod("Tradeable_RoyalFavor_Helper", BindingFlags.Public | BindingFlags.Static);
-                var codes = new List<CodeInstruction>(instructions);
-                int startIndex = -1;
-                int endIndex = -1;
-                bool foundStartIndex = false;
-                bool foundEndIndex = false;
+                var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (foundStartIndex && foundEndIndex)
-                        break;
-
-                    if (foundEndIndex)
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        for (int j = endIndex; j >= 0; j--)
-                        {
-                            if (codes[j].opcode == OpCodes.Ldfld
-                                && codes[j].operand.ToString().Contains("def"))
-                            {
-                                startIndex = j;
-                                foundStartIndex = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!foundEndIndex
-                        && codes[i].opcode == OpCodes.Call
-                        && codes[i].operand.ToString().Contains("DrawTextureRotated"))
-                    {
-                        endIndex = i;
-                        foundEndIndex = true;
-                        continue;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                if (startIndex >= 0 && endIndex >= 0)
+                if (!foundMatch)
                 {
-                    //make new instructions
-                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
-
-                    //remove old instructions
-                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
-
-                    //add new instructions
-                    codes.InsertRange(startIndex, newCodes);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in Tradeable_RoyalFavor.DrawIcon; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
-        public static void Tradeable_RoyalFavor_Helper(Rect iconRect, Faction faction)
-        {
-            Widgets.DrawTextureRotated(iconRect, GameComponent_FactionLists.iconCacheDict[faction], 0f);
-        }
+        // public static void Tradeable_RoyalFavor_Helper(Rect iconRect, Faction faction)
+        // {
+        //     Widgets.DrawTextureRotated(iconRect, GameComponent_FactionLists.Instance.GetTextureSafe(faction), 0f);
+        // }
 
         //RimWorld.ColonistBarColonistDrawer.DrawIcons(Rect rect, Pawn colonist)
         //Tested: works
-        [HarmonyPatch(typeof(ColonistBarColonistDrawer))]
-        [HarmonyPatch("DrawIcons")]
+        [HarmonyPatch(typeof(ColonistBarColonistDrawer), nameof(ColonistBarColonistDrawer.DrawIcons))]
         public static class ColonistBarColonistDrawer_DrawIcons_Patch
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
                 var codes = new List<CodeInstruction>(instructions);
-                int startIndex = -1;
-                int endIndex = -1;
-                //int defIndex = -1;
-                bool foundStartIndex = false;
-                bool foundEndIndex = false;
+                bool foundMatch = false;
 
-                //bool foundDefIndex = false;
-
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (foundStartIndex && foundEndIndex)
-                        break;
-
-                    if (foundEndIndex)
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        for (int j = endIndex; j >= 0; j--)
-                        {
-                            if (codes[j].opcode == OpCodes.Ldfld
-                                && codes[j].operand.ToString().Contains("def"))
-                            {
-                                startIndex = j;
-                                foundStartIndex = true;
-                                break;
-                            }
-                        }
-                        continue;
-                    }
-
-                    if (!foundEndIndex
-                        && codes[i].opcode == OpCodes.Callvirt
-                        && codes[i].operand.ToString().Contains("get_FactionIcon"))
-                    {
-                        endIndex = i;
-                        foundEndIndex = true;
-                        continue;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                if (startIndex >= 0 && endIndex >= 0)
+                if (!foundMatch)
                 {
-                    //make new instructions
-                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, getHelper));
-
-                    //remove old instructions
-                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
-
-                    //add new instructions
-                    codes.InsertRange(startIndex, newCodes);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in ColonistBarColonistDrawer.DrawIcons; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
@@ -257,173 +218,91 @@ namespace nuff.Ideology_Faction_Icon
 
         //RimWorld.FactionUIUtility.DrawFactionRow(Faction faction, float rowY, Rect fillRect)
         //Tested: works
-        [HarmonyPatch(typeof(FactionUIUtility))]
-        [HarmonyPatch("DrawFactionRow")]
+        [HarmonyPatch(typeof(FactionUIUtility), nameof(FactionUIUtility.DrawFactionRow))]
         public static class FactionUIUtility_DrawFactionRow_Patch
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Public | BindingFlags.Static);
+                var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                bool foundEndIndex = false;
-                bool foundStartIndex = false;
-                int startIndex = -1;
-                int endIndex = -1;
-
-                var codes = new List<CodeInstruction>(instructions);
-                //var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
-
-                //loop through code instructions
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (foundEndIndex && foundStartIndex)
-                        break;
-
-                    if (foundEndIndex)
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        for (int j = endIndex; j > 0; j--)
-                        {
-                            if (codes[j].opcode == OpCodes.Ldfld
-                                && codes[j].operand.ToString().Contains("FactionDef"))
-                            {
-                                startIndex = j;
-                                foundStartIndex = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!foundEndIndex
-                        && codes[i].opcode == OpCodes.Call
-                        && codes[i].operand.ToString().Contains("DrawTexture"))
-                    {
-                        endIndex = i;
-                        foundEndIndex = true;
-                        continue;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                //only modify the instructions if the above loop was able to set the startIndex and endIndex
-                if (startIndex >= 0 && endIndex >= 0)
+                if (!foundMatch)
                 {
-                    //generate the new instructions
-                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    //call my method
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
-
-                    //remove the old instruction
-                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
-                    //insert the new instructions
-                    codes.InsertRange(startIndex, newCodes);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in FactionUIUtility.DrawFactionRow; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
         //RimWorld.FactionUIUtility.DrawFactionIconWithTooltip(Rect, Faction)
-        [HarmonyPatch(typeof(FactionUIUtility))]
-        [HarmonyPatch("DrawFactionIconWithTooltip")]
+        [HarmonyPatch(typeof(FactionUIUtility), nameof(FactionUIUtility.DrawFactionIconWithTooltip))]
         public static class FactionUIUtility_DrawFactionIconWithTooltip_Patch
         {
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Public | BindingFlags.Static);
+                var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                bool foundEndIndex = false;
-                bool foundStartIndex = false;
-                int startIndex = -1;
-                int endIndex = -1;
-
-                var codes = new List<CodeInstruction>(instructions);
-                //var callDrawTexture = typeof(GUI).GetMethod("DrawTexture", new[] { typeof(Rect), typeof(Texture) });
-
-                //loop through code instructions
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (foundEndIndex && foundStartIndex)
-                        break;
-
-                    if (foundEndIndex)
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        for (int j = endIndex; j > 0; j--)
-                        {
-                            if (codes[j].opcode == OpCodes.Ldfld
-                                && codes[j].operand.ToString().Contains("FactionDef"))
-                            {
-                                startIndex = j;
-                                foundStartIndex = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!foundEndIndex
-                        && codes[i].opcode == OpCodes.Call
-                        && codes[i].operand.ToString().Contains("DrawTexture"))
-                    {
-                        endIndex = i;
-                        foundEndIndex = true;
-                        continue;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                //only modify the instructions if the above loop was able to set the startIndex and endIndex
-                if (startIndex >= 0 && endIndex >= 0)
+                if (!foundMatch)
                 {
-                    //generate the new instructions
-                    List<CodeInstruction> newCodes = new List<CodeInstruction>();
-                    //call my method
-                    newCodes.Add(new CodeInstruction(OpCodes.Call, drawHelper));
-
-                    //remove the old instruction
-                    codes.RemoveRange(startIndex, (endIndex - startIndex + 1));
-                    //insert the new instructions
-                    codes.InsertRange(startIndex, newCodes);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in FactionUIUtility.DrawFactionIconWithTooltip; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
         //RimWorld.PermitsCardUtility.DrawRecordsCard(Rect, Pawn)
         //Only shows if you have multiple factions with titles
         //TODO test, need another faction that can have titles like DMS or Moyo Cartel to be updated to 1.6
-        [HarmonyPatch(typeof(PermitsCardUtility))]
-        [HarmonyPatch("DrawRecordsCard")]
+        [HarmonyPatch(typeof(PermitsCardUtility), nameof(PermitsCardUtility.DrawRecordsCard))]
         public static class PermitsCardUtility_DrawRecordsCard_Patch
         {
-            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
-
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                int iconIndex = -1;
-
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        iconIndex = i;
-                    }
-
-                    //Apparently this operation needs to preserve labels. Causes System.ArgumentException: Label #3 is not marked in method `RimWorld.PermitsCardUtility.DrawRecordsCard_Patch0' if I do it like the others
-                    if (iconIndex > 0)
-                    {
-                        codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper).WithLabels(codes[iconIndex - 1].labels);
-                        codes[iconIndex] = new CodeInstruction(OpCodes.Nop).WithLabels(codes[iconIndex].labels);
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                return codes.AsEnumerable();
+                if (!foundMatch)
+                {
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in PermitsCardUtility.DrawRecordsCard; leaving instructions unchanged. Please send your error log to the developer.");
+                }
+
+                return codes;
             }
         }
 
         //RimWorld.PawnColumnWorker_Faction.GetIconFor(Pawn pawn)
         //untested: not sure what this is in-game
-        [HarmonyPatch(typeof(PawnColumnWorker_Faction))]
-        [HarmonyPatch("GetIconFor")]
+        [HarmonyPatch(typeof(PawnColumnWorker_Faction), nameof(PawnColumnWorker_Faction.GetIconFor))]
         public static class PawnColumnWorker_Faction_GetIconFor_Postfix
         {
             public static void Postfix(Pawn pawn, ref Texture2D __result)
@@ -443,9 +322,6 @@ namespace nuff.Ideology_Faction_Icon
         [HarmonyPatch]
         public static class Reward_Goodwill_StackElements_Patch
         {
-            static MethodInfo drawHelper = typeof(HarmonyPatches).GetMethod(nameof(GUI_DrawTexture_Helper), BindingFlags.Static | BindingFlags.Public);
-            static MethodInfo drawTexture = AccessTools.Method(typeof(GUI), nameof(GUI.DrawTexture), new[] { typeof(Rect), typeof(Texture) });
-
             static MethodBase TargetMethod()
             {
                 var outerType = typeof(Reward_Goodwill);
@@ -463,29 +339,27 @@ namespace nuff.Ideology_Faction_Icon
 		            IL_0017: ldfld class RimWorld.FactionDef RimWorld.Faction::def
 		            IL_001c: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Texture2D RimWorld.FactionDef::get_FactionIcon()
 		            IL_0021: call void [UnityEngine.IMGUIModule]UnityEngine.GUI::DrawTexture(valuetype [UnityEngine.CoreModule]UnityEngine.Rect, class [UnityEngine.CoreModule]UnityEngine.Texture)
-
-                Need:
-                    ldfld class RimWorld.Faction RimWorld.Reward_Goodwill::faction
-                    call helper method instead
             */
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    //Find operation tagged IL_0021 above
-                    if (codes[i].Calls(drawTexture))
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        // Replace that call with a call to my helper
-                        codes[i] = new CodeInstruction(OpCodes.Call, drawHelper);
-
-                        // Remove the instructions that consume the Faction in favor of a FactionDef, then consume that in favor of a Texture2D. IL_0017 and IL_001c above
-                        codes.RemoveRange(i - 2, 2);
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                return codes.AsEnumerable();
+                if (!foundMatch)
+                {
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in Reward_Goodwill.StackElements; leaving instructions unchanged. Please send your error log to the developer.");
+                }
+
+                return codes;
             }
         }
 
@@ -494,8 +368,7 @@ namespace nuff.Ideology_Faction_Icon
 
         //RimWorld.Planet.Settlement.ExpandingIcon
         //Tested: works
-        [HarmonyPatch(typeof(Settlement))]
-        [HarmonyPatch("ExpandingIcon", MethodType.Getter)]
+        [HarmonyPatch(typeof(Settlement), nameof(Settlement.ExpandingIcon), MethodType.Getter)]
         public static class Settlement_ExpandingIcon_Postfix
         {
             public static void Postfix(Settlement __instance, ref Texture2D __result)
@@ -590,11 +463,10 @@ namespace nuff.Ideology_Faction_Icon
 
             public static IEnumerable<FloatMenuOption> Postfix(IEnumerable<FloatMenuOption> __result, Faction faction)
             {
-                FieldInfo itemIconField = typeof(FloatMenuOption).GetField("iconTex", BindingFlags.Instance | BindingFlags.NonPublic);
 
                 foreach (FloatMenuOption fmo in __result)
                 {
-                    itemIconField.SetValue(fmo, Get_FactionIcon_Helper(faction));
+                    fmo.iconTex = Get_FactionIcon_Helper(faction);
 
                     yield return fmo;
                 }
@@ -606,7 +478,6 @@ namespace nuff.Ideology_Faction_Icon
         [HarmonyPatch(typeof(Pawn_RoyaltyTracker))]
         public static class Pawn_RoyaltyTracker_GetGizmos_Patch
         {
-            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
 
             static MethodBase TargetMethod()
             {
@@ -626,24 +497,23 @@ namespace nuff.Ideology_Faction_Icon
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                int iconIndex = -1;
-
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        iconIndex = i;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                if (iconIndex > 0)
+                if (!foundMatch)
                 {
-                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
-                    codes.RemoveAt(iconIndex);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in Pawn_RoyaltyTracker.GetGizmos; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
@@ -655,8 +525,6 @@ namespace nuff.Ideology_Faction_Icon
         [HarmonyPatch]
         public static class CharacterCardUtility_DoTopStack_Patch
         {
-            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
-
             static IEnumerable<MethodBase> TargetMethods()
             {
                 var parentType = typeof(CharacterCardUtility);
@@ -667,15 +535,12 @@ namespace nuff.Ideology_Faction_Icon
                     if (!nestedType.Name.StartsWith("<>c__DisplayClass"))
                         continue;
 
-                    // See if that method in that nested Type has an instruction that is a Callvirt to get_FactionIcon
+                    // Select methods that call the exact faction icon getter.
                     foreach (var method in nestedType.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
                     {
                         var instructions = HarmonyLib.PatchProcessor.GetCurrentInstructions(method, out _);
 
-                        if (instructions.Any(instr =>
-                            instr.opcode == OpCodes.Callvirt &&
-                            instr.operand is MethodInfo info &&
-                            info.Name == "get_FactionIcon"))
+                        if (instructions.Any(instr => instr.Calls(factionIconGetter)))
                         {
                             yield return method;
                         }
@@ -686,24 +551,23 @@ namespace nuff.Ideology_Faction_Icon
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                int iconIndex = -1;
-
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        iconIndex = i;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                if (iconIndex > 0)
+                if (!foundMatch)
                 {
-                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
-                    codes.RemoveAt(iconIndex);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in CharacterCardUtility.DoTopStack; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
@@ -711,8 +575,6 @@ namespace nuff.Ideology_Faction_Icon
         [HarmonyPatch]
         public static class Reward_BestowingCeremony_StackElements_Patch
         {
-            static MethodInfo getHelper = typeof(HarmonyPatches).GetMethod(nameof(Get_FactionIcon_Helper), BindingFlags.Public | BindingFlags.Static);
-
             static MethodBase TargetMethod()
             {
                 var outerType = typeof(Reward_BestowingCeremony);
@@ -739,30 +601,28 @@ namespace nuff.Ideology_Faction_Icon
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = instructions.ToList();
+                bool foundMatch = false;
 
-                int iconIndex = -1;
-
-                for (int i = 0; i < codes.Count; i++)
+                for (int i = 0; i + 1 < codes.Count; i++)
                 {
-                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("get_FactionIcon"))
+                    if (codes[i].LoadsField(factionDefField) && codes[i + 1].Calls(factionIconGetter))
                     {
-                        iconIndex = i;
+                        foundMatch = true;
+                        ReplaceRangeWithCall(codes, i, i + 1, getHelper);
                     }
                 }
 
-                if (iconIndex > 0)
+                if (!foundMatch)
                 {
-                    codes[iconIndex - 1] = new CodeInstruction(OpCodes.Call, getHelper);
-                    codes.RemoveAt(iconIndex);
+                    Log.Error("Ideoligion Icon as Faction Icon: faction icon lookup not found in Reward_BestowingCeremony.StackElements; leaving instructions unchanged. Please send your error log to the developer.");
                 }
 
-                return codes.AsEnumerable();
+                return codes;
             }
         }
 
         //Settlement colors
-        [HarmonyPatch(typeof(Settlement))]
-        [HarmonyPatch("Material", MethodType.Getter)]
+        [HarmonyPatch(typeof(Settlement), nameof(Settlement.Material), MethodType.Getter)]
         public static class Settlement_Material_Postfix
         {
             public static void Postfix(Material __result, Settlement __instance)
@@ -773,7 +633,8 @@ namespace nuff.Ideology_Faction_Icon
 
                 Faction faction = __instance.Faction;
 
-                bool useIdeoColor = comp.colorDictionary.TryGetValue(faction, out bool use) && use;
+                bool useIdeoColor = IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.IFI_Choose
+                    && comp.colorDictionary.TryGetValue(faction, out bool use) && use;
 
                 Color targetColor = useIdeoColor
                     ? (faction.ideos?.PrimaryIdeo?.Color ?? faction.Color)
@@ -783,32 +644,35 @@ namespace nuff.Ideology_Faction_Icon
             }
         }
 
-        [HarmonyPatch(typeof(FactionManager))]
-        [HarmonyPatch("Add")]
+        [HarmonyPatch(typeof(FactionManager), nameof(FactionManager.Add))]
         public static class FactionManager_Add_Postfix
         {
             public static void Postfix(Faction faction)
             {
                 var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
-                comp.TryAddFaction(faction, IdeoFactIconSettings.ideoAsFact);
-                //GameComponent_FactionLists.RecacheIcons();
-                comp.needRecache = true;
+                if (comp != null)
+                {
+                    comp.TryAddFaction(faction);
+                    //GameComponent_FactionLists.RecacheIcons();
+                    comp.needRecache = true;
+                }
             }
         }
 
-        [HarmonyPatch(typeof(FactionManager))]
-        [HarmonyPatch("Remove")]
+        [HarmonyPatch(typeof(FactionManager), nameof(FactionManager.Remove))]
         public static class FactionManager_Remove_Postfix
         {
             public static void Postfix(Faction faction)
             {
                 var comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
-                comp.TryRemoveFaction(faction);
+                if (comp != null)
+                {
+                    comp.TryRemoveFaction(faction);
+                }
             }
         }
 
-        [HarmonyPatch(typeof(Page_ChooseIdeoPreset))]
-        [HarmonyPatch("DoClassic")]
+        [HarmonyPatch(typeof(Page_ChooseIdeoPreset), nameof(Page_ChooseIdeoPreset.DoClassic))]
         public static class Page_ChooseIdeoPreset_DoClassic_Postfix
         {
             public static void Postfix()
@@ -832,16 +696,32 @@ namespace nuff.Ideology_Faction_Icon
             }
         }
 
-        [HarmonyPatch(typeof(Dialog_ChooseIdeoSymbols))]
-        [HarmonyPatch("TryAccept")]
+        [HarmonyPatch(typeof(Dialog_ChooseIdeoSymbols), nameof(Dialog_ChooseIdeoSymbols.TryAccept))]
         public static class Dialog_ChooseIdeoSymbols_TryAccept_Postfix
         {
             public static void Postfix()
             {
-                GameComponent_FactionLists comp = GameComponent_FactionLists.Instance;
+                GameComponent_FactionLists comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
                 if (comp != null)
                 {
                     comp.needRecache = true;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(FactionIdeosTracker), nameof(FactionIdeosTracker.RecalculateIdeosBasedOnPlayerPawns))]
+        public static class FactionIdeosTracker_RecalculateIdeosBasedOnPlayerPawns_Patches
+        {
+            public static void Prefix(FactionIdeosTracker __instance, out Ideo __state)
+            {
+                __state = __instance.primaryIdeo;
+            }
+
+            public static void Postfix(FactionIdeosTracker __instance, Ideo __state)
+            {
+                if (__instance.primaryIdeo != __state)
+                {
+                    Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
                 }
             }
         }
