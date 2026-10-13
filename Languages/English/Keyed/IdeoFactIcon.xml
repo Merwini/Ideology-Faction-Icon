@@ -24,5 +24,9 @@
     <IFI_UseIdeoligionColor>Use ideoligion color</IFI_UseIdeoligionColor>
     <IFI_UseIdeoligionColor_tooltip>Use ideoligion's color</IFI_UseIdeoligionColor_tooltip>
 
-    
+    <IFI_ModName>Ideoligion Icon as Faction Icon</IFI_ModName>
+    <IFI_Menu_1>Which factions should use their ideoligion icon as their faction icon?</IFI_Menu_1>
+    <IFI_Menu_2>(Icons won't update while the game is paused.)</IFI_Menu_2>
+    <IFI_Menu_3>Has no ideoligion</IFI_Menu_3>
+    <IFI_Menu_4>Specific faction behavior can only be chosen while in-game. Please load your save first.</IFI_Menu_4>
 </LanguageData>

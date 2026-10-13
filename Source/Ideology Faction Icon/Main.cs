@@ -18,28 +18,39 @@ namespace nuff.Ideology_Faction_Icon
 
         public override string SettingsCategory()
         {
-            return "Ideoligion Icon as Faction Icon";
+            return "IFI_ModName".Translate();
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            GameComponent_FactionLists comp = null;
+            GameComponent_FactionLists comp = Current.Game?.GetComponent<GameComponent_FactionLists>();
+            bool inGame = comp != null;
+            IdeoFactIconSettings.OverallBehavior behavior = inGame ? comp.overallBehavior : IdeoFactIconSettings.defaultBehavior;
 
             Text.Font = GameFont.Medium;
 
-            if (Current.Game != null)
-            {
-                comp = Current.Game.GetComponent<GameComponent_FactionLists>();
-            }
             Listing_Standard listingStandard = new Listing_Standard { maxOneColumn = true };
             listingStandard.Begin(inRect);
 
-            listingStandard.Label("Which factions should use their ideoligion icon as their faction icon?");
-            listingStandard.Label("(Icons won't update while the game is paused.)");
-            listingStandard.EnumSelector(ref IdeoFactIconSettings.ideoAsFact, "", "", "");
-            if (IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.IFI_Choose)
+            listingStandard.Label("IFI_Menu_1".Translate());
+            listingStandard.Label("IFI_Menu_2".Translate());
+            listingStandard.EnumSelector(ref behavior, "", "", "");
+            if (inGame)
             {
-                if (Current.Game != null && comp != null)
+                if (comp.overallBehavior != behavior)
+                {
+                    comp.overallBehavior = behavior;
+                    comp.needRecache = true;
+                }
+            }
+            else
+            {
+                IdeoFactIconSettings.defaultBehavior = behavior;
+            }
+
+            if (behavior == IdeoFactIconSettings.OverallBehavior.IFI_Choose)
+            {
+                if (inGame)
                 {
                     Text.Font = GameFont.Small;
 
@@ -56,9 +67,9 @@ namespace nuff.Ideology_Faction_Icon
 
                     foreach (var faction in comp.iconDictionary.Keys.ToList())
                     {
-                        IdeoFactIconSettings.Behavior behavior = comp.iconDictionary[faction]
-                            ? IdeoFactIconSettings.Behavior.IFI_UseIdeoForFaction
-                            : IdeoFactIconSettings.Behavior.IFI_Default;
+                        IdeoFactIconSettings.IconBehavior iconBehavior = comp.iconDictionary[faction]
+                            ? IdeoFactIconSettings.IconBehavior.IFI_UseIdeoForFaction
+                            : IdeoFactIconSettings.IconBehavior.IFI_Default;
 
                         IdeoFactIconSettings.ColorBehavior colorBehavior = comp.colorDictionary[faction]
                             ? IdeoFactIconSettings.ColorBehavior.IFI_UseIdeoligionColor
@@ -67,15 +78,15 @@ namespace nuff.Ideology_Faction_Icon
                         scrollList.Label(faction.Name);
                         if (faction.ideos?.PrimaryIdeo != null)
                         {
-                            scrollList.EnumSelector(ref behavior, "", "");
+                            scrollList.EnumSelector(ref iconBehavior, "", "");
                             scrollList.EnumSelector(ref colorBehavior, "", "");
                         }
                         else
                         {
-                            scrollList.Label("Has no ideoligion");
+                            scrollList.Label("IFI_Menu_3".Translate());
                         }
 
-                        comp.iconDictionary[faction] = behavior == IdeoFactIconSettings.Behavior.IFI_UseIdeoForFaction;
+                        comp.iconDictionary[faction] = iconBehavior == IdeoFactIconSettings.IconBehavior.IFI_UseIdeoForFaction;
                         comp.colorDictionary[faction] = colorBehavior == IdeoFactIconSettings.ColorBehavior.IFI_UseIdeoligionColor;
                         scrollList.Gap();
                     }
@@ -86,7 +97,7 @@ namespace nuff.Ideology_Faction_Icon
                 }
                 else
                 {
-                    listingStandard.Label("Specific factions can only be chosen while in-game. Please load your save first.");
+                    listingStandard.Label("IFI_Menu_4".Translate());
                 }
             }
             listingStandard.Gap();
@@ -109,14 +120,14 @@ namespace nuff.Ideology_Faction_Icon
 
     public class IdeoFactIconSettings : ModSettings
     {
-        public enum CustomizeSettings
+        public enum OverallBehavior
         {
             IFI_Just_Player,
             IFI_All,
             IFI_Choose,
         }
 
-        public enum Behavior
+        public enum IconBehavior
         {
             IFI_Default,
             IFI_UseIdeoForFaction
@@ -128,14 +139,14 @@ namespace nuff.Ideology_Faction_Icon
             IFI_UseIdeoligionColor
         }
 
-        public static CustomizeSettings ideoAsFact = CustomizeSettings.IFI_Just_Player;
+        public static OverallBehavior defaultBehavior = OverallBehavior.IFI_Just_Player;
 
         public float calculatedScrollHeight = 0f;
         public Vector2 scrollPosition = new Vector2();
 
         public override void ExposeData()
         {
-            Scribe_Values.Look(ref ideoAsFact, "ideoBehavior");
+            Scribe_Values.Look(ref defaultBehavior, "defaultBehavior");
         }
     }
 }

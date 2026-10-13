@@ -10,6 +10,8 @@ namespace nuff.Ideology_Faction_Icon
     {
         public static GameComponent_FactionLists Instance { get; private set; }
 
+        public IdeoFactIconSettings.OverallBehavior overallBehavior;
+
         internal Dictionary<Faction, bool> iconDictionary;
         internal Dictionary<Faction, bool> colorDictionary;
 
@@ -20,14 +22,16 @@ namespace nuff.Ideology_Faction_Icon
         List<bool> colorBehaviorListTmp;
 
         public Dictionary<Faction, Texture2D> iconCacheDict;
+        public Dictionary<Faction, Color?> colorCacheDict;
         public bool needRecache = true;
-        private bool recacheFailed = false;
 
         public GameComponent_FactionLists(Game game)
         {
             iconDictionary = new Dictionary<Faction, bool>();
             colorDictionary = new Dictionary<Faction, bool>();
             iconCacheDict = new Dictionary<Faction, Texture2D>();
+            colorCacheDict = new Dictionary<Faction, Color?>();
+            overallBehavior = IdeoFactIconSettings.defaultBehavior;
 
             Instance = this;
         }
@@ -52,7 +56,7 @@ namespace nuff.Ideology_Faction_Icon
                     return;
 
                 Instance = this;
-                RecacheIcons();
+                RecacheDictionaries();
             });
         }
 
@@ -60,14 +64,8 @@ namespace nuff.Ideology_Faction_Icon
         {
             if (needRecache)
             {
-                RecacheIcons();
+                RecacheDictionaries();
             }
-        }
-
-        public override void ExposeData()
-        {
-            Scribe_Collections.Look(ref iconDictionary, "iconDictionary", LookMode.Reference, LookMode.Value, ref iconFactListTmp, ref iconBehaviorListTmp);
-            Scribe_Collections.Look(ref colorDictionary, "colorDictionary", LookMode.Reference, LookMode.Value, ref colorFactListTmp, ref colorBehaviorListTmp);
         }
 
         public void PopulateIconDictionary()
@@ -82,28 +80,36 @@ namespace nuff.Ideology_Faction_Icon
             needRecache = true;
         }
 
-        public void RecacheIcons()
+        public void RecacheDictionaries()
         {
             PopulateIconDictionary();
 
-            Dictionary<Faction, Texture2D> newDict = new Dictionary<Faction, Texture2D>();
+            Dictionary<Faction, Texture2D> newIconDict = new Dictionary<Faction, Texture2D>();
             foreach (var entry in iconDictionary)
             {
-                RecacheIconSingle(entry.Key, newDict);
+                RecacheIconSingle(entry.Key, newIconDict);
             }
-            iconCacheDict = newDict;
+            iconCacheDict = newIconDict;
+
+            Dictionary<Faction, Color?> newColorDict = new Dictionary<Faction, Color?>();
+            foreach (var entry in colorDictionary)
+            {
+                RecacheColorSingle(entry.Key, newColorDict);
+            }
+            colorCacheDict = newColorDict;
+
             needRecache = false;
         }
 
         private void RecacheIconSingle(Faction faction, Dictionary<Faction, Texture2D> newDict)
         {
             bool behavior;
-            switch (IdeoFactIconSettings.ideoAsFact)
+            switch (overallBehavior)
             {
-                case IdeoFactIconSettings.CustomizeSettings.IFI_All:
+                case IdeoFactIconSettings.OverallBehavior.IFI_All:
                     behavior = true;
                     break;
-                case IdeoFactIconSettings.CustomizeSettings.IFI_Just_Player:
+                case IdeoFactIconSettings.OverallBehavior.IFI_Just_Player:
                     behavior = faction.IsPlayer;
                     break;
                 default:
@@ -116,7 +122,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 tex = faction.ideos?.PrimaryIdeo?.Icon;
             }
-            if (tex == null)
+            if (tex == null) // covers !behavior and null Icon
             {
                 tex = faction.def.FactionIcon;
             }
@@ -124,6 +130,28 @@ namespace nuff.Ideology_Faction_Icon
             newDict.Add(faction, tex);
         }
 
+        private void RecacheColorSingle(Faction faction, Dictionary<Faction, Color?> newDict)
+        {
+            bool behavior;
+            switch (overallBehavior)
+            {
+                case IdeoFactIconSettings.OverallBehavior.IFI_Choose:
+                    behavior = colorDictionary.TryGetValue(faction, out bool selected) && selected;
+                    break;
+                default:
+                    behavior = false;
+                    break;
+            }
+
+            Color? color = null;
+
+            if (behavior)
+            {
+                color = faction.ideos?.PrimaryIdeo?.Color;
+            }
+
+            newDict.Add(faction, color);
+        }
 
         internal void TryAddFaction(Faction faction)
         {
@@ -153,7 +181,7 @@ namespace nuff.Ideology_Faction_Icon
             }
         }
 
-        internal Texture2D GetTextureSafe(Faction faction)
+        internal Texture2D GetTextureForFaction(Faction faction)
         {
             if (faction == null)
                 return null;
@@ -162,6 +190,24 @@ namespace nuff.Ideology_Faction_Icon
                 return tex;
 
             return faction.def.FactionIcon;
+        }
+
+        internal Color? GetColorForFaction(Faction faction)
+        {
+            if (faction == null)
+                return default;
+
+            if (colorCacheDict != null && colorCacheDict.TryGetValue(faction, out Color? col) && col != default)
+                return col;
+
+            return null;
+        }
+
+        public override void ExposeData()
+        {
+            Scribe_Collections.Look(ref iconDictionary, "iconDictionary", LookMode.Reference, LookMode.Value, ref iconFactListTmp, ref iconBehaviorListTmp);
+            Scribe_Collections.Look(ref colorDictionary, "colorDictionary", LookMode.Reference, LookMode.Value, ref colorFactListTmp, ref colorBehaviorListTmp);
+            Scribe_Values.Look(ref overallBehavior, "overallBehavior", IdeoFactIconSettings.defaultBehavior);
         }
     }
 }

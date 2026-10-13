@@ -66,7 +66,7 @@ namespace nuff.Ideology_Faction_Icon
             public static void Postfix()
             {
                 //need to recahce right away so that settlements display correctly when player goes to choose a landing site
-                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
+                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheDictionaries();
             }
         }
 
@@ -77,7 +77,7 @@ namespace nuff.Ideology_Faction_Icon
             public static void Prefix()
             {
                 //have to recache here as well because new Odyssey scenario / ScenPart_ForcedMap skip Page_SelectStartingSite
-                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
+                Current.Game.GetComponent<GameComponent_FactionLists>().RecacheDictionaries();
             }
         }
 
@@ -99,7 +99,7 @@ namespace nuff.Ideology_Faction_Icon
 
         public static Texture2D Get_FactionIcon_Helper(Faction faction)
         {
-            return GameComponent_FactionLists.Instance.GetTextureSafe(faction);
+            return GameComponent_FactionLists.Instance.GetTextureForFaction(faction);
         }
 
 
@@ -122,6 +122,17 @@ namespace nuff.Ideology_Faction_Icon
         //    }
         //}
 
+        [HarmonyPatch(typeof(Faction), nameof(Faction.Color), MethodType.Getter)]
+        public static class Faction_Color_Postfix
+        {
+            public static void Postfix(Faction __instance, ref Color __result)
+            {
+                Color? color = GameComponent_FactionLists.Instance.GetColorForFaction(__instance);
+                if (color.HasValue)
+                    __result = color ?? __result;
+            }
+        }
+
         //RimWorld.InteractionDef.GetSymbol(Faction, Ideo)
         //todo test
         [HarmonyPatch(typeof(InteractionDef), nameof(InteractionDef.GetSymbol))]
@@ -131,7 +142,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 if (__instance.symbolSource == InteractionSymbolSource.InitiatorFaction && initiatorFaction != null)
                 {
-                    __result = GameComponent_FactionLists.Instance.GetTextureSafe(initiatorFaction);
+                    __result = GameComponent_FactionLists.Instance.GetTextureForFaction(initiatorFaction);
                 }
             }
         }
@@ -145,7 +156,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 if (__result != null)
                 {
-                    __result.iconTex = GameComponent_FactionLists.Instance.GetTextureSafe(__instance);
+                    __result.iconTex = GameComponent_FactionLists.Instance.GetTextureForFaction(__instance);
                 }
             }
         }
@@ -633,7 +644,7 @@ namespace nuff.Ideology_Faction_Icon
 
                 Faction faction = __instance.Faction;
 
-                bool useIdeoColor = IdeoFactIconSettings.ideoAsFact == IdeoFactIconSettings.CustomizeSettings.IFI_Choose
+                bool useIdeoColor = comp.overallBehavior == IdeoFactIconSettings.OverallBehavior.IFI_Choose
                     && comp.colorDictionary.TryGetValue(faction, out bool use) && use;
 
                 Color targetColor = useIdeoColor
@@ -721,7 +732,7 @@ namespace nuff.Ideology_Faction_Icon
             {
                 if (__instance.primaryIdeo != __state)
                 {
-                    Current.Game.GetComponent<GameComponent_FactionLists>().RecacheIcons();
+                    Current.Game.GetComponent<GameComponent_FactionLists>().RecacheDictionaries();
                 }
             }
         }
